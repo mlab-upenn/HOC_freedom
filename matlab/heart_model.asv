@@ -28,7 +28,7 @@ function [node_table,path_table]=heart_model(node_table,path_table)
            [temp_node(i,:)]=node_automatron(node_table(i,:));
            
            % create local variables for node activation signals
-           temp_act{i}=temp_node{i,7};       
+           temp_act{i}=temp_node{i,9};       
        end
        
       
@@ -42,5 +42,25 @@ function [node_table,path_table]=heart_model(node_table,path_table)
        end
        % update the parameters to global variables
        node_table=[temp_node(:,1:8),temp_act',temp_node(:,10:12)];
-
+       
+       %*******************************************************************
+       % find changes in the default antegrade conduction of the path table
+       ind=find(cell2mat(temp_path_node(:,9))~=cell2mat(temp_path(:,9)));
+       for i=1:length(ind)
+           % update the value
+          temp_path{ind(i),9}=temp_path_node{ind(i),9};
+          % if the path is still in idle state, also update the current
+          % value
+          if temp_path_node{ind(i),2}==1
+              temp_path{ind(i),8}=temp_path{ind(i),9};
+          end
+       end
+       % find changes in the default retrograde conduction of the path table
+       ind=find(cell2mat(temp_path_node(:,11))~=cell2mat(temp_path(:,11)));
+       for i=1:length(ind)
+          temp_path{ind(i),11}=temp_path_node{ind(i),11};
+          if temp_path_node{ind(i),2}==1
+              temp_path{ind(i),10}=temp_path{ind(i),11};
+          end
+       end
        path_table=temp_path;
