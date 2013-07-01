@@ -20,50 +20,48 @@ temp_act=0;
 % Activate path
 temp_path=0;
 
-if node_para{9} % if node is activated
-%     temp=node_para{10};
-    switch node_para{2}
+if node_para{6} % if node is activated
+    switch node_para{1}
         
         case 1 %Rest
            
             % reset ERP 
-
-            node_para{3}=node_para{4};
+            node_para{2}=node_para{3};
             % Activate paths
             temp_path=1;
             % Reset Trest
-            node_para{7}=node_para{8};
+            node_para{4}=node_para{5};
             % change state to ERP
-            node_para{2}=2;
+            node_para{1}=2;
         case 2 %ERP
          
             % reset TERP
-            node_para{3}=node_para{4};
+            node_para{2}=node_para{3};
     end
 else % if node is not activated
-    switch node_para{2}
+    switch node_para{1}
         case 1 %Rest
-            if node_para{7}==0 % self depolarize
+            if node_para{4}==0 % self depolarize
                 % change state to ERP
-                node_para{2}=2;
+                node_para{1}=2;
                 % reset Trest timer
-                node_para{7}=node_para{8};
+                node_para{4}=node_para{5};
                 % activate the node
                 temp_path=1;
                 temp_act=1;
             else
                 % timer
-                node_para{7}=node_para{7}-1;
+                node_para{4}=node_para{4}-1;
             end
         case 2 %ERP
-            if node_para{3}==0 %timer running out
+            if node_para{2}==0 %timer running out
                 % change state to RRP
-                node_para{2}=1;
+                node_para{1}=1;
                 % reset TERP timer
-                node_para{3}=round((1+(rand-0.5)*0)*node_para{4});
+                node_para{2}=node_para{3};
             else
                 % timer
-                node_para{3}=node_para{3}-1;
+                node_para{2}=node_para{2}-1;
             end
 
     end

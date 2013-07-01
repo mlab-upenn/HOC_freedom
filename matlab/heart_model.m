@@ -34,13 +34,14 @@ function [node_table,path_table]=heart_model(node_table,path_table)
       
        for i=1:size(path_table,1)
            % update parameters for each path
-           [temp_path(i,:),node_act_1,node_act_2]=path_automatron(path_table(i,:),node_table{path_table{i,3},12},node_table{path_table{i,4},12});
+           [temp_path(i,:),node_act_1,node_act_2]=path_automatron(path_table(i,:),node_table{path_table{i,2},7},node_table{path_table{i,3},7});
 
-            temp_act{path_table{i,3}}=temp_act{path_table{i,3}} || node_act_1;
-            temp_act{path_table{i,4}}=temp_act{path_table{i,4}} || node_act_2;
+           % node can be activated
+            temp_act{path_table{i,2}}=temp_act{path_table{i,2}} || node_act_1;
+            temp_act{path_table{i,3}}=temp_act{path_table{i,3}} || node_act_2;
 
        end
        % update the parameters to global variables
-       node_table=[temp_node(:,1:8),temp_act',temp_node(:,10:12)];
+       node_table=[temp_node(:,1:5),temp_act',temp_node(:,7)];
 
        path_table=temp_path;
