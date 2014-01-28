@@ -71,10 +71,15 @@ void heart_model(int** node_table,int** path_table,int** temp_node,int** temp_pa
         //printf("act %d:%d\n",h,temp_node[h][5]);
     }
 
+    //Copy back the new data to node_table and path_table
     for(char i=0; i<nx; i++) {
-        node_table[i] = temp_node[i];
+        for(char j=0;j<ny;j++){
+            node_table[i][j] = temp_node[i][j];
+            }
     }
     for(char i=0; i<px; i++) {
-        path_table[i] = temp_path[i];
+        for(char j=0;j<py;j++){
+        path_table[i][j] = temp_path[i][j];
+        }
     }
 }
