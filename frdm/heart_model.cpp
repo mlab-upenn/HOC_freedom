@@ -17,14 +17,9 @@
 #include "heart_model.h"
 #include "node_automatron.h"
 #include "path_automatron.h"
-void test()
-{
-}
 
-void heart_model(int** node_table,int** path_table,int** temp_node,int** temp_path,char nx,char ny,char px,char py)
+void heart_model(int** node_table,int** path_table,char nx,char ny,char px,char py)
 {
-    //local temp node and path table
-    //array for activation signal
 
     char temp_act[nx];//array as large as the number of nodes to hold the activation values of all the nodes
     char tempActArray[2];//used to return the activation values for the end nodes of a path
@@ -33,19 +28,11 @@ void heart_model(int** node_table,int** path_table,int** temp_node,int** temp_pa
     tempActArray[1] = 0;
 
     for(char i = 0; i<nx; i++) {
-        //danger!!!
-        //copy node table row in temp_node row before sending it.
-        for(char k = 0; k< ny; k++) {
-            temp_node[i][k] = node_table[i][k];
-        }
-        //  ---------------------------------
         // update parameters for each node
         //update each row of the node_table in accordance with the node time parameters and node state
-        node_automatron(temp_node[i]); //check if update is done
+        node_automatron(node_table[i]); //check if update is done
 
-        //CHECK: temp_act
-        //printf("node act:%d",temp_node[i][6]);
-        temp_act[i] = temp_node[i][6];//copy activation data of each node for use in path data updation
+        temp_act[i] = node_table[i][6];//copy activation data of each node for use in path data updation
     }
     for(char j = 0; j<px; j++) {
         //copy path table row in temp_node row before sending it.
@@ -56,10 +43,8 @@ void heart_model(int** node_table,int** path_table,int** temp_node,int** temp_pa
         node_act_1 = node_table[temp1][6];//copy activation data of the source node
         char temp2 = path_table[j][2];//copy destination node information to temp2
         node_act_2 = node_table[temp2][6];//copy activation data of the destination node
-        for(char k = 0; k< py; k++)
-            temp_path[j][k] = path_table[j][k];//copy all the elements of one row in every iteration of j iterated for loop
 
-        path_automatron(temp_path[j],node_act_1,node_act_2,&tempActArray[0]);//update path table row wise
+        path_automatron(path_table[j],node_act_1,node_act_2,&tempActArray[0]);//update path table row wise
 
         //CHECK: Node activation!!
         temp_act[temp1] = (temp_act[temp1] || tempActArray[0]);
@@ -67,19 +52,6 @@ void heart_model(int** node_table,int** path_table,int** temp_node,int** temp_pa
     }
     //Copy activation signal column.
     for(char h = 0; h<nx; h++) {
-        temp_node[h][5] = temp_act[h];
-        //printf("act %d:%d\n",h,temp_node[h][5]);
-    }
-
-    //Copy back the new data to node_table and path_table
-    for(char i=0; i<nx; i++) {
-        for(char j=0;j<ny;j++){
-            node_table[i][j] = temp_node[i][j];
-            }
-    }
-    for(char i=0; i<px; i++) {
-        for(char j=0;j<py;j++){
-        path_table[i][j] = temp_path[i][j];
-        }
+        node_table[h][5] = temp_act[h];
     }
 }

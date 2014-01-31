@@ -8,6 +8,7 @@ times for successful cessation of transmission****/
 #include "mbed.h"
 #include "heart_model.h"
 inline void displayData(char option);//function made inline mainly to increase execution speed in the heart interrupt routine
+inline void displayData_e(char option);
 void updateTable();//function to update the node and path table upon request through serial communication
 int** makeTable(char row, char column);/*even though some of these values can be converted to short to save memory, in the interest
 of performance, they are left as int, int is supposed to be the natural data type of the computer and hence this would speed up execution*/
@@ -25,8 +26,6 @@ char px = 3;
 char py = 7;
 int** node_table = makeTable(nx,ny);
 int** path_table = makeTable(px,py);
-int** temp_node = makeTable(nx,ny);
-int** temp_path = makeTable(px,py);
 long double node_activation_status,prev_node_activation_status=0;//variables which store the 6th column of the node table and transmit upon change
 long double nodes_status,prev_nodes_status=0;//variables which encode the nodes' states for transmission
 long double paths_status,prev_paths_status=0;//variables to store the paths' states for transmission
@@ -35,19 +34,19 @@ char change=0;//indicate a change in either the node activation column or the no
 char immediate_display=0;//used to indicate that synchronous display is enabled
 char start_display=0;/*formed using enable_display and immediate_display to indicate suitability to start display of values, this is done
 by initiating transmission of various states when node 1 is activated*/
-DigitalOut sense_point(PTB8);//pin to sense the states of the nodes
+DigitalOut asense(PTA4);//pin to sense the states of the nodes
 InterruptIn npace_end(PTD4);//pin to trigger node activation for node4
 InterruptIn npace1(PTA5);//pin to trigger node activation for node1
 //InterruptIn update_pin(PTA4);//pin to initiate table update code, not used anymore
-DigitalOut performance_check(PTA12);//pin to check execution time of sections of the code
+DigitalOut vsense(PTA12);//pin to check execution time of sections of the code
+DigitalOut asense_ref(PTB8);
+DigitalOut vsense_ref(PTB9);
 Serial pc(USBTX, USBRX);
 Ticker heart_trigger;
-Timer t;
 int main()
 {
     pc.baud(115200);//set the baud of serial communication to 115200
     wait(1);//wait introduced to let the signals settle down after a flash or reset.
-    t.start();//start the timer which will be used later to hold updation of node_table and path_table till opportune time
     loadTable();//load default values to start heart execution
     heart_trigger.attach(&heart_scheduler,0.001);//heart model set to execute every 1ms, the function heart_scheduler calls the function heart_model
     npace1.fall(&node1_pacer);//activate the first node upon a falling edge on pin npace1
@@ -63,8 +62,6 @@ int main()
                 //free the tables used for the current configuration in preparation for the new configuration
                 freeTable(node_table,nx);
                 freeTable(path_table,px);
-                freeTable(temp_node,nx);
-                freeTable(temp_path,px);
                 updateTable();
                 heart_trigger.attach(&heart_scheduler,0.001);
             }
@@ -82,6 +79,7 @@ int main()
                 start_display=0;
                 enable_display=0;//stop both forms of display
                 immediate_display=0;
+                pc.printf("k\n\r");
             }
             else if(pc.getc()=='i')// to enable display of the states in synchronous with the heart execution, sending an i disables 'd' mode if enabled previously
             {
@@ -102,19 +100,14 @@ int main()
 
 void heart_scheduler()//periodic function to call the heart model every 1ms
 {
-    performance_check=1;//pin to measure execution time, for experimental purposes only
-    heart_model(node_table,path_table,temp_node,temp_path,nx,ny,px,py);//heart_model function to update the table every 1ms
-    char sig_sum=0;//accumulate the activation values of all the nodes
-    for(char i=0;i<nx;i++)
-    {
-        sig_sum|=node_table[i][5];
-    }
-    if(sig_sum>0)
-    {
-        sense_point=1;
-        wait(0.000001);//pulse sense_point for 1us, 
-        sense_point=0;
-    }
+    asense_ref=1;
+    //performance_check=1;//pin to measure execution time, for experimental purposes only
+    heart_model(node_table,path_table,nx,ny,px,py);//heart_model function to update the table every 1ms
+    //char sig_sum=0;//accumulate the activation values of all the nodes
+    asense=node_table[0][5];
+    //asense_ref=node_table[0][5];
+    vsense=node_table[nx-1][5];
+    vsense_ref=node_table[nx-1][5];
     start_display|=((enable_display|immediate_display)&node_table[0][5]);//if either display modes is enabled and node 1 activation occurs, start displaying values,
     //this gives a good reference point for interpreting values sent
     //once start_display is set, it can be reset only on disabling either of the display modes by sending 's', this will reset start_display to '0'
@@ -122,27 +115,38 @@ void heart_scheduler()//periodic function to call the heart model every 1ms
     {
         displayData(1);//call inline function displayData, the argument 1 is not used
     }
-    t.reset();//reset the timer at every call, the timer value gives the relative time of any operation with respect to heart routine interrupt
-    performance_check=0;//set the pin to low to indicate end of routine
+    //performance_check=0;//set the pin to low to indicate end of routine
+    asense_ref=0;
 }
 
 void node1_pacer()//this function is called when the first node of the heart is paced
 {
     //pc.printf("pace on node1 detected\n\r");//this line can be commented, for testing purposes only
     node_table[0][5]|=1;//activate the first node
+    displayData_e(1);
 }
 
 void node_last_pacer()//this function is called upon a pacing signal to the last node of the heart
 {
     //pc.printf("pace on node%d detected\n\r",nx);//this line can be commented, for testing purposes only
     node_table[nx-1][5]|=1;//activate the last node
+    displayData_e(1);
 }
 
-///interrupt routine to indicate table update request, not used anymore
-/*void req_generator()
+inline void displayData_e(char option)
 {
-    table_update_req|=1;
-}*/
+    node_activation_status=0;
+    nodes_status=0;
+    paths_status=0;
+    for(char i=0;(i<nx);i++)//combined 'for' loop to populate data from both the node table and the path table
+    {
+            //one bit of node_activation_status used for indication of each node's activation value, first node's data is the lowest bit
+            node_activation_status=node_activation_status*2;//multiplication by 2 has the effect of right shift, right shift is not allowed on float values, hence this workaround
+            node_activation_status+=node_table[nx-i-1][5];//stuff last node first to get the first node's data in the least significant position
+    }    
+    pc.printf("%.0lf!\n\r",node_activation_status);//'!' identifies the preceding data as nodes' activation values
+    prev_node_activation_status=node_activation_status;
+}
 
 inline void displayData(char option)
 {
@@ -225,14 +229,12 @@ void updateTable()
                         {
                             
                             node_table=makeTable(no_of_rows,no_of_cols);//create a table based on the new row and column counts for node_table
-                            temp_node=makeTable(no_of_rows,no_of_cols);
                             nx=no_of_rows;
                             ny=no_of_cols;
                         }
                         else
                         {
                             path_table=makeTable(no_of_rows,no_of_cols);//create a table based on the new row and column counts for the path table
-                            temp_path=makeTable(no_of_rows,no_of_cols);
                             px=no_of_rows;
                             py=no_of_cols; 
                         }
