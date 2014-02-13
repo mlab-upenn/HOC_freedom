@@ -17,8 +17,8 @@
 #include "heart_model.h"
 #include "node_automatron.h"
 #include "path_automatron.h"
-
-void heart_model(int** node_table,int** path_table,char nx,char ny,char px,char py)
+#include "periodic_trigger.h"
+void heart_model(int** node_table,int** path_table,char nx,char ny,char px,char py,char sch_activation,int** trigger_table)
 {
 
     char temp_act[nx];//array as large as the number of nodes to hold the activation values of all the nodes
@@ -49,6 +49,10 @@ void heart_model(int** node_table,int** path_table,char nx,char ny,char px,char 
         //CHECK: Node activation!!
         temp_act[temp1] = (temp_act[temp1] || tempActArray[0]);
         temp_act[temp2] = (temp_act[temp2] || tempActArray[1]);
+    }
+    if(sch_activation)
+    {
+        periodic_trigger(temp_act,trigger_table,nx);
     }
     //Copy activation signal column.
     for(char h = 0; h<nx; h++) {
