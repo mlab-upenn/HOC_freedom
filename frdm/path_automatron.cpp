@@ -1,16 +1,17 @@
-#include "path_automatron.h"
+/*This function is used update the states of the path based on the condition in the nodes
+*/
 
-void path_automatron(int *path_para,int node_act_1,int node_act_2,int tempActArray[])
+void path_automatron(int *path_para,char node_act_1,char node_act_2,char tempActArray[])
 {
-    int temp_act_1 = 0;
-    int temp_act_2 = 0;
-    int state  = path_para[0];
-    switch(state) 
+    char temp_act_1 = 0;
+    char temp_act_2 = 0;
+    char state  = path_para[0];
+    switch(state)
     {
-        case 1: 
+        case 1:
         { //idle
             //if activation comng from entry node
-            if(node_act_1) 
+            if(node_act_1)
             {
                 //antegrade conduction
                 path_para[0] = 2;
@@ -29,11 +30,11 @@ void path_automatron(int *path_para,int node_act_1,int node_act_2,int tempActArr
              {
                 //double
                 path_para[0] = 4;
-            } 
-            else 
+            }
+            else
             {
                 //if timer running out
-                if(path_para[3] == 0) 
+                if(path_para[3] == 0)
                 {
                     //reset timer
                     path_para[3] = path_para[4];
@@ -41,7 +42,7 @@ void path_automatron(int *path_para,int node_act_1,int node_act_2,int tempActArr
                     temp_act_2 = 1;
                     //go to conflict state
                     path_para[0] = 4;
-                } 
+                }
                 else
                  {
                     //timer
@@ -57,7 +58,7 @@ void path_automatron(int *path_para,int node_act_1,int node_act_2,int tempActArr
              {
                 path_para[0] = 4; //conflict
             }
-             else 
+             else
             {
                 //if timer runs out
                 if(path_para[5] == 0)
@@ -68,7 +69,7 @@ void path_automatron(int *path_para,int node_act_1,int node_act_2,int tempActArr
                     temp_act_1 = 1;
                     //change state to conflict
                     path_para[0] = 4;
-                } 
+                }
                 else
                  {
                     //timer
