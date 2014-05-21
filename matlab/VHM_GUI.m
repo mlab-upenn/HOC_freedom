@@ -8,7 +8,7 @@ function VHM_GUI
     catch
     end
     global UT_GUI
-    UT_GUI.udp_handle=[];
+    UT_GUI.udp_handle=[]; 
     assignin('base','u',UT_GUI.udp_handle);
     UT_GUI.ok_to_display=0;
     UT_GUI.logging_in_progress=0;
@@ -18,368 +18,535 @@ function VHM_GUI
     UT_GUI.node_table=[];
     UT_GUI.path_table=[];
     UT_GUI.trigger_table=[];
-    UT_GUI.log={'Started GUI'};
     UT_GUI.screen_size=get(0,'ScreenSize');
     UT_GUI.paths_handle=[];
     UT_GUI.add_path_mode=0;
     UT_GUI.pause=0;
     UT_GUI.time_display=0;
+    UT_GUI.MAX_PACES=20;
     UT_GUI.main_gui_handle=figure('Units', 'normalized'...
         ,'Position', [0 0 1 1]...
         ,'Resize','on'...
         ,'Name','Test Sample'...
         ,'NumberTitle','Off');
-        %,'CloseRequestFcn',@close_gui);
-    UT_GUI.axes_handle=axes('Units','normalized'...
-        ,'Position',[0,0.2,0.48,0.8]...
+        %,'CloseRequestFcn',@close_gui);      
+    set(UT_GUI.main_gui_handle,'MenuBar','none');
+    UT_GUI.file_menu=uimenu(UT_GUI.main_gui_handle,'Label','File','HandleVisibility','off');
+    UT_GUI.file_menu_new_option=uimenu(UT_GUI.file_menu,'Label','New Model','Callback',@new_model,'Accelerator','n','HandleVisibility','off');
+    UT_GUI.file_menu_load_option=uimenu(UT_GUI.file_menu,'Label','Load Model','Callback',@load_model,'Accelerator','o','HandleVisibility','off');
+    UT_GUI.file_menu_save_option=uimenu(UT_GUI.file_menu,'Label','Save Model','Callback',@save_model,'Accelerator','s','HandleVisibility','off');
+    UT_GUI.file_menu_exit_option=uimenu(UT_GUI.file_menu,'Label','Exit','Callback','close all;clear all','Accelerator','x','HandleVisibility','off');
+    UT_GUI.edit_menu=uimenu(UT_GUI.main_gui_handle,'Label','Edit','HandleVisibility','off');
+    UT_GUI.edit_menu_add_path_option=uimenu(UT_GUI.edit_menu,'Label','Add path','Callback',@add_path,'Accelerator','a','HandleVisibility','off');
+    UT_GUI.edit_menu_remove_node_option=uimenu(UT_GUI.edit_menu,'Label','Remove Node','Callback',@remove_node,'Accelerator','r','HandleVisibility','off');
+    UT_GUI.edit_menu_remove_path_option=uimenu(UT_GUI.edit_menu,'Label','Remove Path','Callback',@remove_path,'Accelerator','d','HandleVisibility','off');
+    UT_GUI.play_mode=uimenu(UT_GUI.main_gui_handle,'Label','Mode','HandleVisibility','off');
+    UT_GUI.play_mode_current_option=uimenu(UT_GUI.play_mode,'Label','Current','Callback',@switch_modes,'HandleVisibility','off','Checked','on');
+    UT_GUI.play_mode_retro_option=uimenu(UT_GUI.play_mode,'Label','Playback','Callback',@switch_modes,'HandleVisibility','off');
+    UT_GUI.miscellaneous_option=uimenu(UT_GUI.main_gui_handle,'Label','Miscellany','HandleVisibility','off');
+    UT_GUI.load_trigger_table_handle=uimenu(UT_GUI.miscellaneous_option,'Label','Upload Pace Table','Callback',@upload_trigger_table,'Accelerator','u','HandleVisibility','off');
+    UT_GUI.pace_nodes_handle=uimenu(UT_GUI.miscellaneous_option,'Label','Pace Now','Callback',@pace_nodes,'Accelerator','p','HandleVisibility','off','Enable','off');
+    UT_GUI.view_history_handle=uimenu(UT_GUI.miscellaneous_option,'Label','View Log','Callback',@display_log,'Accelerator','l','HandleVisibility','off');
+    UT_GUI.heart_axes_handle=axes('Units','normalized'...
+    ,'Position',[0.005,0.195,0.47,0.8]...
         ,'Xlim',[0 530]...
         ,'Ylim',[0 530]...
         ,'XTick',[]...
         ,'YTick',[]...
         ,'ZTick',[]...
-        ,'NextPlot','add');
+        ,'NextPlot','add');    
+    UT_GUI.panel2_handle=uipanel('Parent',UT_GUI.main_gui_handle...
+        ,'Title',''...
+        ,'Units','normalized'...
+        ,'Position',[0.005 0.005 0.47 0.185]...
+        ,'BackgroundColor',[0.7 0.9 0.8]...
+        ,'BorderType','etchedout'...
+        ,'BorderWidth',1,...
+        'ShadowColor',[0 0 0]);
+    UT_GUI.play_button_image=imread('H:\VHM\HOC_freedom\HOC_freedom\new_codes\play_button.jpg');
+    UT_GUI.stop_button_image=imread('H:\VHM\HOC_freedom\HOC_freedom\new_codes\stop_button.jpg');
+    UT_GUI.play_or_stop_button=uicontrol('Parent',UT_GUI.panel2_handle...
+        ,'String','Play'...
+        ,'Style','pushbutton'...
+        ,'Units','normalized'...
+        ,'Position',[0.005 0.8 0.04 0.15],...
+        'Callback',@run_model);
+        %'cdata',UT_GUI.play_button_image,...
+    UT_GUI.pause_button_image=imread('H:\VHM\HOC_freedom\HOC_freedom\new_codes\pause_button.jpg');
+%     UT_GUI.pause_button=uicontrol('Parent',UT_GUI.panel2_handle...
+%         ,'Style','pushbutton'...
+%         ,'Units','normalized'...
+%         ,'Position',[0.05 0.69 0.04 0.2],...
+%         'Callback','');
+        %'cdata',UT_GUI.pause_button_image,...
+    UT_GUI.position_slider=uicontrol('Parent',UT_GUI.panel2_handle,'Style','slider'...
+        ,'Min',1,...
+        'Max',10,...
+        'Value',1,...
+        'Units','normalized'...
+        ,'Position',[0.05 0.8 0.705 0.15]...
+        ,'SliderStep',[0.0001 0.001]...
+        ,'Callback',@change_position);
+    UT_GUI.max_time_display=uicontrol('Parent',UT_GUI.panel2_handle,'Style','text','FontSize',14,'String','Inf'...
+        ,'Units','normalized'...
+        ,'Position',[0.76 0.8 0.055 0.15]);
+    UT_GUI.speed_list=uicontrol('Parent',UT_GUI.panel2_handle,'String',{'1x','0.5x','0.25x','0.1x'},'Style',...
+        'popupmenu','Units','normalized'...
+        ,'Position',[0.82 0.8 0.08 0.15]);
+    UT_GUI.pace_button_image=imread('H:\VHM\HOC_freedom\HOC_freedom\new_codes\pace_button.jpg');
+    UT_GUI.pace_button=uicontrol('Parent',UT_GUI.panel2_handle...
+        ,'String','Pace Now'...
+        ,'Style','pushbutton'...
+        ,'Units','normalized'...
+        ,'Position',[0.905 0.8 0.09 0.15],...
+        'Callback',@pace_nodes);
+        %'cdata', UT_GUI.pace_button_image,...
     UT_GUI.show_signals_handle=uicontrol('Style','pushbutton'...
-        ,'String','Show signals'...
+        ,'String','Show Signals'...
         ,'Units','normalized'...
-        ,'Position',[0.0 0.14 0.07 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Callback',@display_signals);   
-    UT_GUI.view_history_handle=uicontrol('Style','pushbutton'...
-        ,'String','Show heart history'...
+        ,'Position',[0.5 0.97 0.07 0.025]...
+        ,'BackgroundColor',[0.7 0.9 0.8]...
+        ,'Callback',@display_signals_or_tables);   
+    UT_GUI.panel4_handle=uipanel('Parent',UT_GUI.main_gui_handle...
+        ,'Title',''...
         ,'Units','normalized'...
-        ,'Position',[0.075 0.14 0.09 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Callback',@display_log);   
-    UT_GUI.add_path_handle=uicontrol('Style','pushbutton'...
-        ,'String','Add path'...
+        ,'Position',[0.48 0.005 0.015 .965]...
+        ,'BackgroundColor',[0.7 0.9 0.8]...
+        ,'BorderType','etchedout'...
+        ,'BorderWidth',1,...
+        'ShadowColor',[0 0 0]); 
+    UT_GUI.panel3_handle=uipanel('Parent',UT_GUI.main_gui_handle...
+        ,'Title',''...
         ,'Units','normalized'...
-        ,'Position',[0.17 0.14 0.05 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Callback',@add_path);
-    UT_GUI.remove_node_handle=uicontrol('Style','pushbutton'...
-        ,'String','Remove Node'...
-        ,'Units','normalized'...
-        ,'Position',[0.225 0.14 0.07 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Callback',@remove_node);
-    UT_GUI.remove_path_handle=uicontrol('Style','pushbutton'...
-        ,'String','Remove Path'...
-        ,'Units','normalized'...
-        ,'Position',[0.30 0.14 0.07 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Callback',@remove_path);
-    UT_GUI.run_button_handle=uicontrol('Style','pushbutton'...
+        ,'Position',[0.495 0.005 0.5 .965]...
+        ,'BackgroundColor',[0.7 0.9 0.8]...
+        ,'BorderType','etchedout'...
+        ,'BorderWidth',1,...
+        'ShadowColor',[0 0 0]); 
+    UT_GUI.run_button_handle=uicontrol('Parent',UT_GUI.panel2_handle,'Style','pushbutton'...
         ,'String','Run Model'...
         ,'Units','normalized'...
-        ,'Position',[0.375 0.14 0.05 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Callback',@run_model); 
-    UT_GUI.pause_button_handle=uicontrol('Style','pushbutton'...
+        ,'Position',[0.465 0.775 0.1 0.2]...
+        ,'BackgroundColor',[0.9 0.9 0.9]...
+        ,'Callback',@run_model,'Visible','off'); 
+    UT_GUI.pause_button_handle=uicontrol('Parent',UT_GUI.panel2_handle,'Style','pushbutton'...
         ,'String','Pause'...
         ,'Units','normalized'...
-        ,'Position',[0.43 0.14 0.05 0.05]...
-        ,'BackgroundColor','w'...
+        ,'Position',[0.57 0.775 0.07 0.2]...
+        ,'BackgroundColor',[0.9 0.9 0.9]...
         ,'Enable','off'...
-        ,'Callback',@pause_model); 
-    UT_GUI.reset_button_handle=uicontrol('Style','pushbutton'...
+        ,'Callback',@pause_model,'Visible','off'); 
+    UT_GUI.reset_button_handle=uicontrol('Parent',UT_GUI.panel2_handle,'Style','pushbutton'...
         ,'String','Reset GUI'...
         ,'Units','normalized'...
-        ,'Position',[0.11 0.085 0.05 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Callback',@reset_gui); 
-    UT_GUI.load_model_handle=uicontrol('Style','pushbutton'...
-        ,'String','Load Model'...
+        ,'Position',[0.750 0.775 0.1 0.2]...
+        ,'BackgroundColor',[0.9 0.9 0.9]...
+        ,'Callback',@reset_gui,'Visible','off');     
+    UT_GUI.show_trigger_table_handle=uicontrol('Parent',UT_GUI.panel2_handle,'Style','pushbutton'...
+        ,'String','Show Pace Setup'...
         ,'Units','normalized'...
-        ,'Position',[0 0.085 0.05 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Callback',@load_model);  
-    UT_GUI.save_model_handle=uicontrol('Style','pushbutton'...
-        ,'String','Save Model'...
-        ,'Units','normalized'...
-        ,'Position',[0.055 0.085 0.05 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Callback',@save_model);    
-    UT_GUI.load_trigger_table_handle=uicontrol('Style','pushbutton'...
-        ,'String','Upload Trigger Table'...
-        ,'Units','normalized'...
-        ,'Position',[0.165 0.085 0.1 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Callback',@upload_trigger_table);
-    UT_GUI.node_table_handle = uitable('Units','normalized'...
-        ,'Position',[0.50 0.53 0.25 0.47]...
+        ,'Position',[0.11 0.570 0.225 0.2]...
+        ,'BackgroundColor',[0.9 0.9 0.9]...
+        ,'Callback',@show_t_table,'Visible','off');
+    UT_GUI.node_table_handle = uitable('Parent',UT_GUI.panel3_handle,'Units','normalized'...
+        ,'Position',[0.005 0.5025 0.4925 0.4925]...
         ,'Data',UT_GUI.node_table...
         ,'RowName',[]...
         ,'ColumnFormat',{'numeric','numeric','numeric','numeric','numeric','numeric','numeric'}...
         ,'ColumnWidth','auto'...
         ,'ColumnEditable',[true true true true true true true]...
-        ,'ColumnName',{'Node State','Current ERP','ERP','Current Rest','Rest','Node activation status','path status'});
-        %,'CellEditCallback',@verify_table_data);
-    UT_GUI.path_table_handle = uitable('Units','normalized'...
-        ,'Position',[0.5 0.05 0.25 0.475]...
+        ,'ColumnName',{'Node State','Current ERP','ERP','Current Rest','Rest','Node activation status','path status'}...
+        ,'TooltipString','Node Table');
+    UT_GUI.path_table_handle = uitable('Parent',UT_GUI.panel3_handle,'Units','normalized'...
+        ,'Position',[0.5025 0.5025 0.4925 0.4925]...
         ,'Data',UT_GUI.path_table...
         ,'RowName',[]...
         ,'ColumnFormat',{'numeric','numeric','numeric','numeric','numeric','numeric','numeric'}...
         ,'ColumnWidth','auto'...
         ,'ColumnEditable',[true true true true true true true true]...
-        ,'ColumnName',{'Path State','Source Node','Destination Node','current FC','Default FC','Current BC','Default BC'});
-        %,'CellEditCallback',@verify_table_data);
-    UT_GUI.trigger_table_handle = uitable('Units','normalized'...
-        ,'Position',[0.755 0.53 0.22 0.47]...
+        ,'ColumnName',{'Path State','Source Node','Destination Node','current FC','Default FC','Current BC','Default BC'}...
+        ,'TooltipString','Path Table');
+    UT_GUI.trigger_table_handle = uitable('Parent',UT_GUI.panel3_handle,'Units','normalized'...
+        ,'Position',[0.005 0.005 0.99 0.4925]...
         ,'Data',UT_GUI.trigger_table...
-        ,'ColumnFormat',{'numeric','numeric'}...
+        ,'ColumnFormat',{'numeric'}...
         ,'ColumnWidth','auto'...
-        ,'ColumnEditable',[true true]...
-        ,'ColumnName',{'Trigger Type', 'Trigger Interval'}...
+        ,'ColumnEditable',true...
+        ,'ColumnName',{'Trigger Count'}...
         ,'CellEditCallback',@update_meaning...
-        ,'TooltipString','Nothing to say');
-    UT_GUI.log_handle=uicontrol('Units','normalized','Style','text','String','','Position',[0.755 0.425 0.22 0.1]);
-    UT_GUI.node_pace_button=uicontrol('Style','pushbutton'...
-        ,'String','Pace Node(s)'...
-        ,'Units','normalized'...
-        ,'Position',[0.755 0.37 0.09 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Enable','off'...
-        ,'Callback',@pace_nodes);
-    UT_GUI.nodes_list=uicontrol('Style','edit'...
-        ,'String','Enter comma seperated Node number(s)'...
-        ,'Units','normalized'...
-        ,'Position',[0.845 0.37 0.13 0.05]...
-        ,'BackgroundColor','w'...
-        ,'Callback',@pace_nodes);
+        ,'TooltipString','Pacing setup table');
     UT_GUI.im=imread('H:\VHM\HOC_freedom\HOC_freedom\new_codes\EP.jpg');
-    UT_GUI.im=image(UT_GUI.im);
+    UT_GUI.im=imagesc(UT_GUI.im);
     UT_GUI.nodes_position=[];
     UT_GUI.node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','r','MarkerFaceColor','r','HitTest','off');%,'ButtonDownFcn',@button_press);
     UT_GUI.selected_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','g','MarkerFaceColor','g');
-    UT_GUI.activated_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','y','MarkerFaceColor','y','HitTest','off','Visible','off');
-    UT_GUI.excited_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','g','MarkerFaceColor','g','HitTest','off','Visible','off');
-    UT_GUI.relaxed_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','r','MarkerFaceColor','r','HitTest','off','Visible','off');
+    UT_GUI.activated_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','y','MarkerFaceColor','y','HitTest','off');
+    UT_GUI.excited_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','g','MarkerFaceColor','g','HitTest','off');
+    UT_GUI.relaxed_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','r','MarkerFaceColor','r','HitTest','off');
     UT_GUI.activated_nodes_position=zeros(1,2);
     UT_GUI.excited_nodes_position=zeros(1,2);
     UT_GUI.relaxed_nodes_position=zeros(1,2);
-    set(UT_GUI.activated_node_pos,'XDataSource','UT_GUI.activated_nodes_position(:,1)','YDataSource','UT_GUI.activated_nodes_position(:,2)');
-    set(UT_GUI.excited_node_pos,'XDataSource','UT_GUI.excited_nodes_position(:,1)','YDataSource','UT_GUI.excited_nodes_position(:,2)');
-    set(UT_GUI.relaxed_node_pos,'XDataSource','UT_GUI.relaxed_nodes_position(:,1)','YDataSource','UT_GUI.relaxed_nodes_position(:,2)');
     set(UT_GUI.im,'HitTest','off');
-    set(UT_GUI.axes_handle,'ButtonDownFcn',@button_press);
-    update_status;
+    set(UT_GUI.heart_axes_handle,'ButtonDownFcn',@button_press);
 end
 
-function DatagramReceivedCallback(hObject,eventdata)
+function new_model(~,~)
 global UT_GUI
-persistent option
-    [UT_GUI.current_nodes_states,UT_GUI.current_node_activation_status,UT_GUI.current_path_states]=data_decoder(fscanf(UT_GUI.udp_handle),UT_GUI.nx,UT_GUI.px);
-    if(UT_GUI.pause==0)
-        if(UT_GUI.ok_to_display==1)
-            signals_display(option,UT_GUI.current_node_activation_status,UT_GUI.nx);
-            option=mod((option+1),2)+1;
-        else 
-            pause(0.000001);
-            option=0;
+    UT_GUI.ok_to_display=0;
+    UT_GUI.logging_in_progress=0;
+    UT_GUI.update_in_progress=0;
+    UT_GUI.nx=0;
+    UT_GUI.px=0;
+    UT_GUI.node_table=[];
+    UT_GUI.path_table=[];
+    UT_GUI.trigger_table=[];
+    UT_GUI.nodes_position=[];
+    UT_GUI.activated_nodes_position=zeros(1,2);
+    UT_GUI.excited_nodes_position=zeros(1,2);
+    UT_GUI.relaxed_nodes_position=zeros(1,2);
+    delete(UT_GUI.paths_handle);
+    UT_GUI.paths_handle=[];
+    UT_GUI.add_path_mode=0;
+    UT_GUI.pause=0;
+    UT_GUI.time_display=0;
+    set(UT_GUI.node_pos,'XData',[],'YData',[]);
+    set(UT_GUI.node_table_handle,'Data',UT_GUI.node_table);
+    set(UT_GUI.path_table_handle,'Data',UT_GUI.path_table);
+    set(UT_GUI.trigger_table_handle,'Data',UT_GUI.trigger_table);
+    set(UT_GUI.trigger_table_handle,'ColumnFormat',{'numeric'},'ColumnWidth','auto','ColumnEditable',true,'ColumnName',{'Trigger Count'});    
+end
+
+function DatagramReceivedCallback(~,~)
+global UT_GUI
+    [UT_GUI.current_nodes_states(end+1,:),UT_GUI.current_node_activation_status(end+1,:),UT_GUI.current_path_states(end+1,:),UT_GUI.current_time(end+1,:)]=data_decoder2(fscanf(UT_GUI.udp_handle),UT_GUI.nx,UT_GUI.px);
+end
+
+function plot_signals(option,current_node_activation_status,time_now,no_of_nodes)
+    persistent prev_value plot_handle time_frame offset_matrix working_handle_index handle_list
+    global UT_GUI
+    if(option==0)
+        time_frame=100;
+        working_handle_index=9999*ones(1,no_of_nodes);
+        color_string='ymcrgb';
+        UT_GUI.plot_axis_handle=axes('Parent',UT_GUI.panel3_handle,'Units','normalized','Position',[0 0 1 1]);
+        set(gca,'Color','k');
+        handle_list=[];
+        handle_list(1,1)=time_now;
+        handle_list(2,1)=text('Parent',UT_GUI.plot_axis_handle,'Units','data','Position',[time_frame,0],'String',[],'Color','k');
+        handle_list(3,1)=1;
+        handle_list(4,1)=0;
+        handle_list(5,1)=1;
+        offset_matrix=zeros(1,no_of_nodes);
+        prev_value=[];
+        hold on;%allows adding plots onto the same axes
+        for i=1:no_of_nodes
+            offset_matrix(i)=1.5*(no_of_nodes-i);
+            prev_value(:,i)=offset_matrix(i)*ones(time_frame,1);
+            plot_handle(i)=plot(UT_GUI.plot_axis_handle,prev_value(:,i));
+            colorcode=color_string(mod(i,6)+1);
+            set(plot_handle(i),'Color',colorcode);
+            temp_string=strcat('Node ',num2str(i));
+            text('Parent',UT_GUI.plot_axis_handle,'Units','data','Position',[0,1.5*(no_of_nodes-i)+0.75],'String',temp_string,'Color','w');
         end
-        colorcodes='bgrc';
-        UT_GUI.activated_nodes_position=zeros(1,2);
-        UT_GUI.excited_nodes_position=zeros(1,2);
-        UT_GUI.relaxed_nodes_position=zeros(1,2);
-        for i=1:UT_GUI.nx
-            if(UT_GUI.current_nodes_states(i)==2)
-                UT_GUI.excited_nodes_position(end+1,:)=UT_GUI.nodes_position(i,:);
-            else
-                UT_GUI.relaxed_nodes_position(end+1,:)=UT_GUI.nodes_position(i,:);
+        set(UT_GUI.plot_axis_handle,'XTick',[],'YTick',[]);
+        set(UT_GUI.plot_axis_handle,'XTickLabel',[],'YTickLabel',[]);
+        set(UT_GUI.plot_axis_handle,'box','off');
+        ylim([0 1.5*no_of_nodes]);
+        xlim([0 time_frame]);
+        hold off;%stop addition
+    else
+        prev_value(1,:)=[];
+        prev_value(end+1,:)=current_node_activation_status+offset_matrix;
+        handle_list(3,:)=handle_list(3,:)-1;
+        handle_list(5,:)=handle_list(5,:)-1;
+        for i=1:no_of_nodes,
+            if((current_node_activation_status(i)==1)&&(offset_matrix(i)==prev_value(end-1,i)))
+                temp_array(1)=time_now;%start time
+                temp_array(3)=time_frame;%current_position
+                temp_array(4)=1.5*(no_of_nodes-i)+1;%y axis position
+                temp_array(5)=time_frame;%start position on plot
+                temp_array(2)=text('Parent',UT_GUI.plot_axis_handle,'Units','data','Position',[time_frame,temp_array(4)],'String',[],'HitTest','off','Color','w');
+                handle_list(:,end+1)=temp_array;
+                almost_finished_handle=working_handle_index(i);
+                working_handle_index(i)=size(handle_list,2);
+                if(almost_finished_handle<=size(handle_list,2))
+                    handle_list(5,almost_finished_handle)=handle_list(3,almost_finished_handle);
+                    handle_list(3,almost_finished_handle)=(time_frame+handle_list(3,almost_finished_handle))/2-1;
+                    set(handle_list(2,almost_finished_handle),'Position',[handle_list(3,almost_finished_handle),handle_list(4,almost_finished_handle)],'String',num2str(time_now-handle_list(1,almost_finished_handle)));
+                end
             end
-            if(UT_GUI.current_node_activation_status(i)==1)
-                UT_GUI.activated_nodes_position(end+1,:)=UT_GUI.nodes_position(i,:);
-            end
+            set(plot_handle(i),'YData',prev_value(:,i));
         end
-        UT_GUI.activated_nodes_position(1,:)=[];
-        UT_GUI.excited_nodes_position(1,:)=[];
-        UT_GUI.relaxed_nodes_position(1,:)=[];
-        refreshdata(UT_GUI.relaxed_node_pos,'caller');
-        refreshdata(UT_GUI.excited_node_pos,'caller');
-        refreshdata(UT_GUI.activated_node_pos,'caller');
-        for i=1:UT_GUI.px
-            set(UT_GUI.paths_handle(i),'Color',colorcodes(UT_GUI.current_path_states(i)));
+        hit_list=find(handle_list(5,:)<=1);
+        delete(handle_list(2,hit_list));
+        handle_list(:,hit_list)=[];
+        for i=1:no_of_nodes,
+            working_handle_index(i)=working_handle_index(i)-sum(working_handle_index(i)>hit_list);
         end
+        for i=1:size(handle_list,2)
+            set(handle_list(2,i),'Position',[handle_list(3,i),handle_list(4,i)]);
+        end
+        pause(0.000001);
     end
 end
 
-function pace_nodes(hObject,eventdata)
+function pace_nodes(~,~)
     global UT_GUI
-        user_data=get(UT_GUI.nodes_list,'String');
-        nodes_list=str2double(strsplit(user_data,','));
-        for i=nodes_list
-            if(i>0)&&(i<=UT_GUI.nx)
-            num_string=sprintf('p%d',(i-1));
-            fprintf(UT_GUI.udp_handle,num_string);
-            end
-        end
-end
-
-function update_status
-global UT_GUI
-    UT_GUI.log={strcat('Number of Nodes: ',num2str(UT_GUI.nx)) strcat('Number of Paths: ',num2str(UT_GUI.px))...
-                strcat('Node Table size:',num2str(size(UT_GUI.node_table,1))) strcat('Path Table size:',num2str(size(UT_GUI.path_table,1)))...
-                strcat('Trigger Table size: ',num2str(size(UT_GUI.trigger_table,1)))};
-            set(UT_GUI.log_handle,'String',UT_GUI.log);
+    fprintf(UT_GUI.udp_handle,'pppp');
 end
 
 function run_model(hObject,eventdata)
-global UT_GUI
-persistent button_states
+    global UT_GUI
+    persistent button_states
     if(config_check~=1)
         return;
     end
-    if(strcmp(get(hObject,'String'),'Run Model'))
-        comp_result=compare_model;
-        if(comp_result==0)
-            response=update_tables(hObject,eventdata);
-        else
-            response=1;
-        end
+    if(strcmp(get(hObject,'String'),'Play'))
+        response=update_tables;
         if(response==1)
-             set(hObject,'String','stop');
+             set(hObject,'String','Stop');
             button_states.view_history=get(UT_GUI.view_history_handle,'Enable');
-            button_states.add_path=get(UT_GUI.add_path_handle,'Enable');
-            button_states.remove_node=get(UT_GUI.remove_node_handle,'Enable');
-            button_states.remove_path=get(UT_GUI.remove_path_handle,'Enable');
-            button_states.load_model=get(UT_GUI.load_model_handle,'Enable');
-            button_states.save_model=get(UT_GUI.save_model_handle,'Enable');
-            button_states.node_table=get(UT_GUI.node_table_handle,'Enable');
-            button_states.path_table=get(UT_GUI.path_table_handle,'Enable');
+            button_states.new_option=get(UT_GUI.file_menu_new_option,'Enable');
+            button_states.load_option=get(UT_GUI.file_menu_load_option,'Enable');
+            button_states.save_option=get(UT_GUI.file_menu_save_option,'Enable');
+            button_states.edit_menu=get(UT_GUI.edit_menu,'Enable');
+            button_states.mode_menu=get(UT_GUI.play_mode,'Enable');
             button_states.upload_trigger_table=get(UT_GUI.load_trigger_table_handle,'Enable');
             set(UT_GUI.view_history_handle,'Enable','off');
-            set(UT_GUI.add_path_handle,'Enable','off');
-            set(UT_GUI.remove_node_handle,'Enable','off');
-            set(UT_GUI.remove_path_handle,'Enable','off');
-            set(UT_GUI.load_model_handle,'Enable','off');
-            set(UT_GUI.save_model_handle,'Enable','off');
-            set(UT_GUI.pause_button_handle,'Enable','on');
+            set(UT_GUI.file_menu_new_option,'Enable','off');
+            set(UT_GUI.file_menu_load_option,'Enable','off');
+            set(UT_GUI.file_menu_save_option,'Enable','off');
+            set(UT_GUI.edit_menu,'Enable','off');
+            set(UT_GUI.play_mode,'Enable','off');
+            set(UT_GUI.load_trigger_table_handle,'Enable','off');
             set(UT_GUI.node_table_handle,'Enable','off');
             set(UT_GUI.path_table_handle,'Enable','off');
-            set(UT_GUI.load_trigger_table_handle,'Enable','off');
             set(UT_GUI.trigger_table_handle,'Enable','off');
+            set(UT_GUI.pace_nodes_handle,'Enable','on');
+            set(UT_GUI.pause_button_handle,'Enable','on');
+            set(UT_GUI.activated_node_pos,'XData',[],'YData',[]);
+            set(UT_GUI.relaxed_node_pos,'XData',[],'YData',[]);
+            set(UT_GUI.excited_node_pos,'XData',[],'YData',[]);
             set(UT_GUI.activated_node_pos,'Visible','on');
-            set(UT_GUI.excited_node_pos,'Visible','on');
             set(UT_GUI.relaxed_node_pos,'Visible','on');
-            set(UT_GUI.node_pace_button,'Enable','on');
-            set(UT_GUI.axes_handle,'ButtonDownFcn','');
+            set(UT_GUI.excited_node_pos,'Visible','on');
+            set(UT_GUI.heart_axes_handle,'ButtonDownFcn','');
+            setup_display_routine;
+            %set up of the buffers
+            UT_GUI.current_nodes_states=ones(1,UT_GUI.nx);
+            UT_GUI.current_node_activation_status=zeros(1,UT_GUI.nx);
+            UT_GUI.current_path_states=ones(1,UT_GUI.px);
+            UT_GUI.current_time=0;        
             UT_GUI.udp_handle = udp('192.168.90.90', 4950, 'LocalPort', 4950);
             set(UT_GUI.udp_handle,'DatagramTerminateMode','on');
             set(UT_GUI.udp_handle, 'ReadAsyncMode', 'continuous');
             UT_GUI.udp_handle.DatagramReceivedFcn=@DatagramReceivedCallback;
             fopen(UT_GUI.udp_handle);
             fprintf(UT_GUI.udp_handle,'x');
+            start(UT_GUI.periodic_function_handle);
         else
             errordlg('Could not run model','error','modal');
             return;
         end
     else
-        flushinput(UT_GUI.udp_handle);
         UT_GUI.udp_handle.DatagramReceivedFcn='';
+        flushinput(UT_GUI.udp_handle);
         fclose(UT_GUI.udp_handle);
         clear UT_GUI.udp_handle;
+        stop_display_routine;
         set(UT_GUI.activated_node_pos,'Visible','off');
-        set(UT_GUI.excited_node_pos,'Visible','off');
         set(UT_GUI.relaxed_node_pos,'Visible','off');
+        set(UT_GUI.excited_node_pos,'Visible','off');
         set(UT_GUI.view_history_handle,'Enable',button_states.view_history);
-        set(UT_GUI.add_path_handle,'Enable',button_states.add_path);
-        set(UT_GUI.remove_node_handle,'Enable',button_states.remove_node);
-        set(UT_GUI.remove_path_handle,'Enable',button_states.remove_path);
-        set(UT_GUI.load_model_handle,'Enable',button_states.load_model);
-        set(UT_GUI.save_model_handle,'Enable',button_states.save_model);
-        set(UT_GUI.pause_button_handle,'Enable','off','BackgroundColor','w');
-        UT_GUI.pause=0;
-        set(UT_GUI.node_table_handle,'Enable',button_states.node_table);
-        set(UT_GUI.path_table_handle,'Enable',button_states.path_table);
+        set(UT_GUI.file_menu_new_option,'Enable',button_states.new_option);
+        set(UT_GUI.file_menu_load_option,'Enable',button_states.load_option);
+        set(UT_GUI.file_menu_save_option,'Enable',button_states.save_option);
+        set(UT_GUI.edit_menu,'Enable',button_states.edit_menu);
+        set(UT_GUI.play_mode,'Enable',button_states.mode_menu);
         set(UT_GUI.load_trigger_table_handle,'Enable',button_states.upload_trigger_table);
+        set(UT_GUI.pause_button_handle,'Enable','off');
+        UT_GUI.pause=0;
+        set(UT_GUI.node_table_handle,'Enable','on');
+        set(UT_GUI.path_table_handle,'Enable','on');
         set(UT_GUI.trigger_table_handle,'Enable','on');
-        set(UT_GUI.node_pace_button,'Enable','off');
-        set(UT_GUI.axes_handle,'ButtonDownFcn',@button_press);
-        set(hObject,'String','Run Model');
+        set(UT_GUI.pace_nodes_handle,'Enable','off');
+        set(UT_GUI.heart_axes_handle,'ButtonDownFcn',@button_press);
+        set(hObject,'String','Play');
     end
 end
 
-function pause_model(hObject,eventdata)
+function setup_display_routine
+    global UT_GUI
+    UT_GUI.periodic_function_handle=timer('StartDelay',0,'Period',0.001,'TasksToExecute',9999999,'ExecutionMode','fixedSpacing','BusyMode','drop');%Period should be 0.001
+    UT_GUI.periodic_function_handle.TimerFcn=@plot_refresher;
+end
+
+function stop_display_routine
+    global UT_GUI
+    stop(UT_GUI.periodic_function_handle);
+    UT_GUI.current_nodes_states=[];
+    UT_GUI.current_node_activation_status=[];
+    UT_GUI.current_path_states=[];
+    UT_GUI.current_time=[];
+    delete(UT_GUI.periodic_function_handle);
+end
+
+function plot_refresher(~,~)
+    global UT_GUI changed signals_list
+    persistent option temp_nodes_states temp_node_activation_status temp_path_states temp_current_time no_of_nodes
+    if(~isempty(UT_GUI.current_nodes_states))
+        temp_nodes_states=UT_GUI.current_nodes_states(1,:);
+        temp_node_activation_status=UT_GUI.current_node_activation_status(1,:);
+        temp_path_states=UT_GUI.current_path_states(1,:);
+        temp_current_time=UT_GUI.current_time(1,:);
+        UT_GUI.current_nodes_states(1,:)=[];
+        UT_GUI.current_node_activation_status(1,:)=[];
+        UT_GUI.current_path_states(1,:)=[];
+        UT_GUI.current_time(1,:)=[];
+    end 
+    if(UT_GUI.pause==0)
+        if(UT_GUI.ok_to_display==1)
+            if(changed==1)
+                changed=0;
+                option=0;
+                no_of_nodes=size(signals_list,2);
+            end
+            plot_signals(option,temp_node_activation_status(signals_list),temp_current_time,no_of_nodes);
+            option=mod(option,2)+1;
+        else 
+            pause(0.000001);
+            option=0;
+        end
+        colorcodes='bgrc';
+        UT_GUI.relaxed_nodes_position=UT_GUI.nodes_position(temp_nodes_states==1,:);
+        UT_GUI.excited_nodes_position=UT_GUI.nodes_position(temp_nodes_states==2,:);
+        UT_GUI.activated_nodes_position=UT_GUI.nodes_position(temp_node_activation_status==1,:);
+        set(UT_GUI.relaxed_node_pos,'XData',UT_GUI.relaxed_nodes_position(:,1),'YData',UT_GUI.relaxed_nodes_position(:,2));
+        set(UT_GUI.excited_node_pos,'XData',UT_GUI.excited_nodes_position(:,1),'YData',UT_GUI.excited_nodes_position(:,2));
+        set(UT_GUI.activated_node_pos,'XData',UT_GUI.activated_nodes_position(:,1),'YData',UT_GUI.activated_nodes_position(:,2));
+        for i=1:UT_GUI.px
+            set(UT_GUI.paths_handle(i),'Color',colorcodes(temp_path_states(i)));
+        end
+    end
+end
+
+function pause_model(hObject,~)
     global UT_GUI
     UT_GUI.pause=mod((UT_GUI.pause+1),2);
     if(UT_GUI.pause==1)
-        set(hObject,'BackgroundColor','c');
+        set(hObject,'String','Play');
+        set(hObject,'ForegroundColor',[1 0.5 0]);
     else
-        set(hObject,'BackgroundColor','w');
+        set(hObject,'String','Pause');
+        set(hObject,'ForegroundColor','k');
     end
 end
 
-function display_signals(hObject,eventdata)
-    global UT_GUI
-    if(config_check~=1)
-        return;
-    end
-    if(strcmp(get(UT_GUI.run_button_handle,'String'),'Run Model'))
-        errordlg('Model not running','error','modal');
-        return;
-    end
-    
-    if((UT_GUI.logging_in_progress==1)||(UT_GUI.update_in_progress==1))
-        errordlg('Close other Windows before continuing','Multiple windows open!','modal');
-        return;
-    end
-    UT_GUI.ok_to_display=1;
+function display_signals_or_tables(hObject,~)
+    global UT_GUI changed signals_list
+    if(strcmp(get(hObject,'String'),'Show Signals')==1)
+        if(config_check~=1)
+            return;
+        end
+        if(strcmp(get(UT_GUI.run_button_handle,'String'),'Play'))
+            errordlg('Model not running','error','modal');
+            return;
+        end
+
+        if((UT_GUI.logging_in_progress==1)||(UT_GUI.update_in_progress==1))
+            errordlg('Close other Windows before continuing','Multiple windows open!','modal');
+            return;
+        end
+        set(UT_GUI.node_table_handle,'Visible','off');
+        set(UT_GUI.path_table_handle,'Visible','off');
+        set(UT_GUI.trigger_table_handle,'Visible','off');
+        uipanel_position=getpixelposition(UT_GUI.panel4_handle);
+        for i=1:UT_GUI.nx,
+            UT_GUI.signals_selection_button_handle(i)=uicontrol('Parent',UT_GUI.panel4_handle,'Style','radiobutton'...
+            ,'String',''...
+            ,'Units','Pixels'...
+            ,'Position',[2 (((2*(UT_GUI.nx-i+1)-1)*uipanel_position(4))/(UT_GUI.nx*2)) uipanel_position(3)-5 uipanel_position(3)-5]...
+            ,'BackgroundColor',[0.7 0.9 0.8]...
+            ,'Callback',@signals_to_display_picker,'Value',1);
+        end
+        changed=1;
+        signals_list=1:UT_GUI.nx;
+        UT_GUI.ok_to_display=1;
+        set(hObject,'String','Show Tables');
+    else
+        UT_GUI.ok_to_display=0;
+        try
+            delete(UT_GUI.plot_axis_handle);
+            delete(UT_GUI.signals_selection_button_handle);
+        catch
+        end
+        set(UT_GUI.node_table_handle,'Visible','on');
+        set(UT_GUI.path_table_handle,'Visible','on');
+        set(UT_GUI.trigger_table_handle,'Visible','on');   
+        set(hObject,'String','Show Signals');
+    end        
 end
 
-function result=compare_model
+function signals_to_display_picker(hObject,eventdata)
+global UT_GUI signals_list changed
+    for i=1:UT_GUI.nx
+        if(eq(hObject,UT_GUI.signals_selection_button_handle(i)))
+            if(sum(signals_list==i))
+                signals_list(signals_list==i)=[];
+            else
+                signals_list(end+1)=i;
+            end
+            changed=1;
+            return;
+        end
+    end
+end
+        
+%under construction
+function play_or_stop(hObject,~)
     global UT_GUI
-    result=1;
+    if(strcmp(get(hObject,'String'),'Play')==0)
+        UT_GUI.player=timer();
+        disp('also called');
+    end
+    disp('called');
+end
+%under construction
+
+function gather_data
+    waitbar_handle=waitbar(0,'Gathering Data...');
     UT_GUI.udp_handle = udp('192.168.90.90', 4950, 'LocalPort', 4950);
     set(UT_GUI.udp_handle,'DatagramTerminateMode','off');
     fopen(UT_GUI.udp_handle);
-    fprintf(UT_GUI.udp_handle,'a');
+    fprintf(UT_GUI.udp_handle,'x');
     pause(1);
-    fprintf(UT_GUI.udp_handle,'c');
+    fprintf(UT_GUI.udp_handle,'l');
     pause(1);
     flushinput(UT_GUI.udp_handle);
-    fprintf(UT_GUI.udp_handle,'OK');
+    fprintf(UT_GUI.udp_handle,'ok');
     data=fscanf(UT_GUI.udp_handle);
-    number_of_nodes=str2double(data(1:find(data==',')-1));
-    number_of_paths=str2double(data(find(data==',')+1:end));
-    if((UT_GUI.nx~=number_of_nodes)||(UT_GUI.px~=number_of_paths))
-        for i=1:(number_of_nodes*2+number_of_paths*4)
-            fprintf(UT_GUI.udp_handle,'OK');
-        end
-        flushinput(UT_GUI.udp_handle);
-        result=0;
-    else
-        count=0;
-        UT_GUI.node_table=get(UT_GUI.node_table_handle,'Data');
-        UT_GUI.path_table=get(UT_GUI.path_table_handle,'Data');
-        for i=1:number_of_nodes
-            for j=[3 5]
-                fprintf(UT_GUI.udp_handle,'OK');
-                data=str2double(fscanf(UT_GUI.udp_handle));
-                if(UT_GUI.node_table(i,j)~=data)
-                    result=0;
-                end
-                count=count+1;
-            end
-        end
-        for i=1:number_of_paths
-            for j=[2 3 5 7]
-                fprintf(UT_GUI.udp_handle,'OK');
-                data=str2double(fscanf(UT_GUI.udp_handle));
-                if((UT_GUI.path_table(i,j)-1+1*floor(j/4))~=data)
-                    result=0;
-                end
-                count=count+1;
-            end
-        end
+    Log_plot_helper2(0,data,UT_GUI.nx,UT_GUI.px);
+    loop_count=1;
+    while(1)
+      fprintf(UT_GUI.udp_handle,'ok');%send acknowledgement for every datagram received, without this, heart won't continue sending data
+      data=fscanf(UT_GUI.udp_handle);
+      if(~isempty(find(data=='e',1)))
+          break;
+      end
+      Log_plot_helper2(1,data,UT_GUI.nx,UT_GUI.px);
+      waitbar(loop_count/1000,waitbar_handle);
+      loop_count=loop_count+1;
     end
     fclose(UT_GUI.udp_handle);
     clear UT_GUI.udp_handle;
+    close(wait_bar);
 end
 
-function display_log(hObject,eventdata)
+
+function display_log(hObject,~)
     global UT_GUI
-    global node_activation_status nodes_states path_states start_time;
-    global duration current_range x_range xlimits;
+    global start_time;
+    global duration current_range x_range;
     global Heart_log;
     global click_count;
     if(config_check~=1)
@@ -392,31 +559,8 @@ function display_log(hObject,eventdata)
         UT_GUI.logging_in_progress=0;
         return;
     end
-    set(hObject,'String','Gathering data...');
-    UT_GUI.udp_handle = udp('192.168.90.90', 4950, 'LocalPort', 4950);
-    set(UT_GUI.udp_handle,'DatagramTerminateMode','off');
-    
-    fopen(UT_GUI.udp_handle);
-    fprintf(UT_GUI.udp_handle,'x');
-    pause(1);
-    fprintf(UT_GUI.udp_handle,'l');
-    pause(1);
-    flushinput(UT_GUI.udp_handle);
-    fscanf(UT_GUI.udp_handle);
-    fprintf(UT_GUI.udp_handle,'ok');
-    data=fscanf(UT_GUI.udp_handle);
-    Log_plot_helper(0,data,UT_GUI.nx,UT_GUI.px);
-    while(1)
-      fprintf(UT_GUI.udp_handle,'ok');%send acknowledgement for every datagram received, without this, heart won't continue sending data
-      data=fscanf(UT_GUI.udp_handle);
-      if(~isempty(find(data=='e',1)))
-          break;
-      end
-      Log_plot_helper(1,data,UT_GUI.nx,UT_GUI.px);
-    end
-    fclose(UT_GUI.udp_handle);
-    clear UT_GUI.udp_handle;
-    duration=size(node_activation_status,1);
+    gather_data;
+    duration=size(UT_GUI.node_activation_status_history,1);
     Heart_log.figure_handle=figure('Units', 'normalized'...
         ,'Position', [0 0 1 1]...
         ,'Resize','on'...
@@ -457,7 +601,7 @@ function display_log(hObject,eventdata)
     color_string='ymcrgb';
     hold on;
     for i=1:UT_GUI.nx
-        current_range(:,i)=node_activation_status(1:1000,i)+1.5*(UT_GUI.nx-i);
+        current_range(:,i)=UT_GUI.node_activation_status_history(1:1000,i)+1.5*(UT_GUI.nx-i);
         temp_string=strcat('Node ',num2str(i));
         Heart_log.label_handle(i)=text('Units','data','Position',[500,1.5*(UT_GUI.nx-i)+0.75],'String',temp_string,'HitTest','off');
         Heart_log.plot_handle(i)=plot(current_range(:,i));
@@ -469,12 +613,12 @@ function display_log(hObject,eventdata)
     set(Heart_log.axes_handle,'YTickLabel',[]);
     set(Heart_log.axes_handle,'box','off');
     ylim([0 1.5*UT_GUI.nx]);
-    set(hObject,'String','Show heart history');
+    set(hObject,'String','Plot Heart Log');
     UT_GUI.logging_in_progress=0;
 end
 
-function replot(hObject,eventdata)
-    global Heart_log node_activation_status current_range UT_GUI x_range xlimits
+function replot(~,~)
+    global Heart_log current_range UT_GUI x_range
     lower_limit=uint64(get(Heart_log.slider2_handle,'Value'));
     higher_limit=uint64(get(Heart_log.slider1_handle,'Value'));
     if(lower_limit>higher_limit)
@@ -486,14 +630,14 @@ function replot(hObject,eventdata)
     current_range=zeros(higher_limit-lower_limit+1,UT_GUI.nx);
     %sum(current_range)
     for i=1:UT_GUI.nx
-        current_range(:,i)=node_activation_status(lower_limit:higher_limit,i)+1.5*(UT_GUI.nx-i);
+        current_range(:,i)=UT_GUI.node_activation_status_history(lower_limit:higher_limit,i)+1.5*(UT_GUI.nx-i);
         set(Heart_log.label_handle(i),'Position',[(higher_limit+lower_limit)/2,1.5*(UT_GUI.nx-i)+0.75]);
         refreshdata(Heart_log.plot_handle(i),'caller');
     end
 end
 
-function set_time_interval(hObject,eventdata)
-    global Heart_log node_activation_status click_count UT_GUI
+function set_time_interval(hObject,~)
+    global Heart_log click_count UT_GUI
     persistent start_position end_position
     mark_pt=round(get(hObject,'CurrentPoint'));
     if(click_count>1)
@@ -521,36 +665,42 @@ function set_time_interval(hObject,eventdata)
     end        
 end
 
-function upload_trigger_table(hObject,eventdata)
+function upload_trigger_table(~,~)
     global UT_GUI
     if(size(get(UT_GUI.trigger_table_handle,'Data'),1)~=UT_GUI.nx)
         errordlg('Trigger Table does not have the same number of nodes as the heart configuration','Configuration Mismatch','modal');
         return;
     end
     UT_GUI.trigger_table=get(UT_GUI.trigger_table_handle,'Data');
+    max_paces=max(UT_GUI.trigger_table(:,1));
+    nx_string=num2str(UT_GUI.nx);
+    ny_string=num2str(7);
+    transmit=strcat(nx_string,',',ny_string);
+    edited_trigger_table=zeros(UT_GUI.nx,21);
     for i=1:UT_GUI.nx,
-        for j=1:2,
-            if((round(UT_GUI.trigger_table(i,j))~=UT_GUI.trigger_table(i,j))||(UT_GUI.trigger_table(i,j)<0))
+        for j=max_paces+1:-1:1,
+            if((~isnan(UT_GUI.trigger_table(i,j)))&&((round(UT_GUI.trigger_table(i,j))~=UT_GUI.trigger_table(i,j))||(UT_GUI.trigger_table(i,j)<0)))
                 errordlg('Invalid data found in the table','Data error','modal');
                 return;
             end
-            if((j==1)&&(UT_GUI.trigger_table(i,j)>2))
-                errordlg('Undefined Trigger Type in the table','Data error','modal');
+            if((UT_GUI.trigger_table(i,1)~=0)&&(j~=1)&&(j<=(UT_GUI.trigger_table(i,1)+1))&&(UT_GUI.trigger_table(i,j)==0))
+                errordlg('Zero interval between paces found in the table','Hazardous Pacing Setup','modal');
                 return;
+            end
+            if(isnan(UT_GUI.trigger_table(i,j)))
+                edited_trigger_table(i,j)=0;
+            else
+                edited_trigger_table(i,j)=UT_GUI.trigger_table(i,j);
             end
         end
     end
-    edited_trigger_table=[UT_GUI.trigger_table(:,1) zeros(UT_GUI.nx,1) UT_GUI.trigger_table(:,2)]';
-    nx_string=num2str(UT_GUI.nx);
-    ny_string=num2str(7);
-    %commas seperate every number sent to the board
-    transmit=strcat(nx_string,',',ny_string);
-    for i=1:3,
-        for j=1:UT_GUI.nx,
+    
+    %The character 'z' indicates end of transmission
+    for i=1:UT_GUI.nx,
+        for j=1:21,
             transmit=strcat(transmit,',',num2str(edited_trigger_table(i,j)));
         end
     end
-    %The character 'z' indicates end of transmission
     transmit=strcat(transmit,',z');
     UT_GUI.udp_handle = udp('192.168.90.90', 4950, 'LocalPort', 4950);
     set(UT_GUI.udp_handle,'DatagramTerminateMode','off');
@@ -571,16 +721,83 @@ function upload_trigger_table(hObject,eventdata)
     clear UT_GUI.udp_handle;
 end
 
-function update_meaning(hObject,eventdata)
+function update_meaning(~,eventdata)
+    global UT_GUI
     edited_cell=eventdata.Indices(1,:);
     if(edited_cell(2)==1)
-        if((eventdata.EditData<0)||(eventdata.EditData)>2)
-            errordlg('Invalid number for this field','Wrong Entry','modal');
-            
-        else
-            update_tooltip;
+        if(eventdata.NewData<0)
+            errordlg('Invalid number for this field, only non negative numbers allowed','Wrong Entry','modal'); 
+            set(UT_GUI.trigger_table_handle,'Data',UT_GUI.trigger_table);
+        else if(eventdata.NewData>UT_GUI.MAX_PACES)
+                errordlg('Maximum number of Paces allowed is 20','Reduce Paces','modal'); 
+                set(UT_GUI.trigger_table_handle,'Data',UT_GUI.trigger_table);
+            else
+                update_t_table_on_GUI(eventdata.NewData,UT_GUI.trigger_table,get(UT_GUI.trigger_table_handle,'Data'));
+            end
         end
     end
+end
+
+function update_t_table_on_GUI(newdata,old_table,new_table)
+    global UT_GUI
+    col_count=max(0,max(old_table(:,1)));
+    if(col_count<newdata)   
+        UT_GUI.trigger_table=[new_table zeros(UT_GUI.nx,newdata-col_count)];
+        temp_columnformat_string={'numeric'};
+        temp_columneditable_array=true;
+        temp_columnname_string={'Pace Count'};
+        for i=1:newdata,
+            temp_columnformat_string{1,1+i}='numeric';
+            temp_columneditable_array=[temp_columneditable_array,true];
+            temp_columnname=['Pace ',num2str(i),' interval'];
+            temp_columnname_string{1,1+i}=temp_columnname;      
+        end
+        set(UT_GUI.trigger_table_handle,'Data',UT_GUI.trigger_table,...
+            'ColumnFormat',temp_columnformat_string,'ColumnEditable',temp_columneditable_array,'ColumnName',temp_columnname_string);
+    else
+       new_col_count=max(0,max(new_table(:,1)));
+       if(col_count>new_col_count)
+            new_table(:,new_col_count+2:end)=[];
+            UT_GUI.trigger_table=new_table;
+            temp_columnformat_string=get(UT_GUI.trigger_table_handle,'ColumnFormat');
+            temp_columneditable_array=get(UT_GUI.trigger_table_handle,'ColumnEditable');
+            temp_columnname_string=get(UT_GUI.trigger_table_handle,'ColumnName');
+            temp_columnformat_string(new_col_count+2:end)=[];
+            temp_columneditable_array(new_col_count+2:end)=[];
+            temp_columnname_string(new_col_count+2:end)=[];
+            set(UT_GUI.trigger_table_handle,'Data',UT_GUI.trigger_table,...
+                'ColumnFormat',temp_columnformat_string,'ColumnEditable',temp_columneditable_array,'ColumnName',temp_columnname_string);
+       end
+    end
+    UT_GUI.trigger_table=get(UT_GUI.trigger_table_handle,'Data');
+    for i=1:UT_GUI.nx
+        for j=2:size(UT_GUI.trigger_table,2)
+            if(isnan(UT_GUI.trigger_table(i,j))&&(j<=(UT_GUI.trigger_table(i,1)+1)))
+                UT_GUI.trigger_table(i,j)=0;
+            end
+            if(j>(UT_GUI.trigger_table(i,1)+1))
+                UT_GUI.trigger_table(i,j)=NaN;
+            end
+        end
+    end
+    set(UT_GUI.trigger_table_handle,'Data',UT_GUI.trigger_table);
+end
+
+function create_t_table_on_GUI(trigger_table,figure_handle)
+    global UT_GUI
+    col_count=max(trigger_table(:,1));
+    UT_GUI.trigger_table=trigger_table;
+    temp_columnformat_string={'numeric'};
+    temp_columneditable_array=true;
+    temp_columnname_string={'Trigger Count'};
+    for i=1:col_count,
+        temp_columnformat_string{1,1+i}='numeric';
+        temp_columneditable_array=[temp_columneditable_array,true];
+        temp_columnname=['Pace ',num2str(i),' interval'];
+        temp_columnname_string{1,1+i}=temp_columnname;
+    end
+    set(figure_handle,'Data',UT_GUI.trigger_table,...
+    'ColumnFormat',temp_columnformat_string,'ColumnEditable',temp_columneditable_array,'ColumnName',temp_columnname_string);
 end
 
 function update_tooltip
@@ -602,20 +819,96 @@ function update_tooltip
     set(UT_GUI.trigger_table_handle,'TooltipString',hint_string);
 end
 
-function load_model(hObject,eventdata)
+function show_t_table(~,~)
+    global UT_GUI
+    if(config_check~=1)
+        return;
+    end
+    col_count=max(max(0,UT_GUI.trigger_table(:,1)));
+    if(col_count==0)
+        msgbox('No pacing sequence set up','Nothing to display','modal');
+        return;
+    end
+    figure_width=(col_count+1)*100;
+    figure_height=UT_GUI.nx*30+10;
+    if((figure_width>UT_GUI.screen_size(3))&&(figure_height>UT_GUI.screen_size(4)))
+        t_table_fig=figure('Units', 'normalized'...
+            ,'Position', [0 0 0.5 1]...
+            ,'Resize','on'...
+            ,'Name','Pacing Setup'...
+            ,'NumberTitle','Off');
+        t_table = uitable('Units','normalized'...
+            ,'Position',[0 0 1 1]...
+            ,'Data',[]...
+            ,'RowName',[]...
+            ,'ColumnFormat',{'numeric'}...
+            ,'ColumnWidth','auto'...
+            ,'ColumnEditable',true...
+            ,'ColumnName',{'Trigger Type'});
+    else
+        if((figure_width>UT_GUI.screen_size(3)))
+            t_table_fig=figure('Units', 'normalized'...
+                ,'Position', [0 0.5 0.5 figure_height/UT_GUI.screen_size(4)]...
+                ,'Resize','on'...
+                ,'Name','Pacing Setup'...
+                ,'NumberTitle','Off');
+            t_table = uitable('Units','normalized'...
+                ,'Position',[0 0 1 1]...
+                ,'Data',[]...
+                ,'RowName',[]...
+                ,'ColumnFormat',{'numeric'}...
+                ,'ColumnWidth','auto'...
+                ,'ColumnEditable',true...
+                ,'ColumnName',{'Trigger Type'});
+        else if(figure_height>UT_GUI.screen_size(4))
+                t_table_fig=figure('Units', 'normalized'...
+                    ,'Position', [0 0 figure_width/UT_GUI.screen_size(3) 1]...
+                    ,'Resize','on'...
+                    ,'Name','Pacing Setup'...
+                    ,'NumberTitle','Off');
+                t_table = uitable('Units','normalized'...
+                    ,'Position',[0 0 1 1]...
+                    ,'Data',[]...
+                    ,'RowName',[]...
+                    ,'ColumnFormat',{'numeric'}...
+                    ,'ColumnWidth','auto'...
+                    ,'ColumnEditable',true...
+                    ,'ColumnName',{'Trigger Type'});
+            else
+                t_table_fig=figure('Units', 'Pixels'...
+                    ,'Position', [UT_GUI.screen_size(3)/4 UT_GUI.screen_size(4)/2 figure_width figure_height]...
+                    ,'Resize','on'...
+                    ,'Name','Pacing Setup'...
+                    ,'NumberTitle','Off');
+                t_table = uitable('Units','Pixels'...
+                    ,'Position',[0 0 figure_width+5 figure_height+5]...
+                    ,'Data',[]...
+                    ,'RowName',[]...
+                    ,'ColumnFormat',{'numeric'}...
+                    ,'ColumnWidth',{100}...
+                    ,'ColumnEditable',true...
+                    ,'ColumnName',{'Trigger Type'});
+            end
+        end
+    end
+    create_t_table_on_GUI(UT_GUI.trigger_table,t_table);
+    set(t_table,'ColumnEditable',false);
+end
+
+function load_model(~,~)
     global UT_GUI
     [fname,path] = uigetfile('*.mat', 'Load VHM Model');
     load([path fname]);
     UT_GUI.node_table=node_table;
     UT_GUI.path_table=path_table;
-    UT_GUI.trigger_table=trigger_table;
+    try
+        create_t_table_on_GUI(trigger_table,UT_GUI.trigger_table_handle);
+    catch
+    end
     UT_GUI.nx=size(UT_GUI.node_table,1);
     UT_GUI.px=size(UT_GUI.path_table,1);
     set(UT_GUI.node_table_handle,'Data',UT_GUI.node_table);
-    %set(UT_GUI.no_of_nodes_handle,'String',num2str(UT_GUI.nx));
     set(UT_GUI.path_table_handle,'Data',UT_GUI.path_table);
-    %set(UT_GUI.no_of_paths_handle,'String',num2str(UT_GUI.px));
-    set(UT_GUI.trigger_table_handle,'Data',UT_GUI.trigger_table);
     UT_GUI.nodes_position=node_pos;
     set(UT_GUI.node_pos,'XData',node_pos(:,1),'YData',node_pos(:,2));
     try
@@ -626,11 +919,10 @@ function load_model(hObject,eventdata)
     for i=1:UT_GUI.px
         UT_GUI.paths_handle(end+1)=line([node_pos(path_table(i,2),1) node_pos(path_table(i,3),1)],[node_pos(path_table(i,2),2) node_pos(path_table(i,3),2)],'LineWidth',5);
     end
-    update_status;
-    update_tooltip;
+    %update_tooltip;
 end
 
-function response=update_tables(hObject,eventdata)
+function response=update_tables
     global UT_GUI
     if(config_check~=1)
         return;
@@ -792,6 +1084,11 @@ function response=update_tables(hObject,eventdata)
     end
     fclose(UT_GUI.udp_handle);
     clear UT_GUI.udp_handle;
+    UT_GUI.node_activation_code_table=zeros(1,UT_GUI.nx+1);
+    UT_GUI.node_status_code_table=ones(1,UT_GUI.nx+1);
+    UT_GUI.node_status_code_table(1,1)=0;
+    UT_GUI.path_status_code_table=ones(1,UT_GUI.px+1);
+    UT_GUI.path_status_code_table(1,1)=0;
     UT_GUI.update_in_progress=0;
     response=1;
 end
@@ -799,7 +1096,7 @@ end
 function response=config_check
 global UT_GUI
     response=0;
-    if((size(UT_GUI.node_table,1)<1)||(size(UT_GUI.node_table,2)<7)||(size(UT_GUI.path_table,1)<1)||(size(UT_GUI.path_table,2)<7)...
+    if((size(UT_GUI.node_table,1)<1)||(size(UT_GUI.node_table,2)~=7)||(size(UT_GUI.path_table,1)<1)||(size(UT_GUI.path_table,2)~=7)...
             ||(UT_GUI.nx<1)||(UT_GUI.px<1)||(size(UT_GUI.node_table,1)~=UT_GUI.nx)||(size(UT_GUI.path_table,1)~=UT_GUI.px))
         errordlg('Tables not loaded correctly','Check Tables','modal');
     else
@@ -808,7 +1105,7 @@ global UT_GUI
 end
     
 
-function save_model(hObject,eventdata)
+function save_model(~,~)
     global UT_GUI
     if(config_check~=1)
         return;
@@ -823,7 +1120,7 @@ function save_model(hObject,eventdata)
     save(dir,'node_table','path_table','node_pos','trigger_table');
 end
 
-function button_press(hObject,eventdata)
+function button_press(hObject,~)
 global UT_GUI
 persistent press_count start_point end_point source_node dest_node
     tolerance=7;
@@ -863,13 +1160,15 @@ persistent press_count start_point end_point source_node dest_node
     end  
 end
 
-function add_path(hObject,eventdata)
+function add_path(hObject,~)
 global UT_GUI
     UT_GUI.add_path_mode=mod((UT_GUI.add_path_mode+1),2);
     if(UT_GUI.add_path_mode==1)
-        set(hObject,'BackgroundColor','c');
+        set(hObject,'ForegroundColor',[1 0.5 0]);
+        set(hObject,'Checked','on');
     else
-        set(hObject,'BackgroundColor','w');
+        set(hObject,'ForegroundColor','k');
+        set(hObject,'Checked','off');
     end
 %     set(UT_GUI.main_gui_handle,'KeyPressFcn',@get_key);
 %     set(UT_GUI.main_gui_handle,'
@@ -883,19 +1182,24 @@ global current_node_config
     ,'Resize','on'...
     ,'Name',strcat('Node ',num2str(node_count),' Settings')...
     ,'NumberTitle','Off');
-    current_node_config.node_number=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','1','Position',[30,50,100,20],'BackgroundColor','white');
-    current_node_config.current_erp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','current ERP','Position',[135,50,80,20],'BackgroundColor','white');
-    current_node_config.erp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','ERP','Position',[220,50,30,20],'BackgroundColor','white');
-    current_node_config.current_rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','Current Rest','Position',[255,50,80,20],'BackgroundColor','white');
-    current_node_config.rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','Rest','Position',[340,50,30,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','Node State','Position',[30,70,100,20]);
+    current_node_config.node_number=uicontrol('Parent',current_node_config.figure_handle,'Style','text','String','1','Position',[30,50,100,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','current ERP','Position',[135,70,80,20]);
+    current_node_config.current_erp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[135,50,80,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','ERP','Position',[220,70,30,20]);
+    current_node_config.erp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[220,50,30,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','Current Rest','Position',[255,70,80,20]);
+    current_node_config.current_rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[255,50,80,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','Rest','Position',[340,70,30,20]);
+    current_node_config.rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[340,50,30,20],'BackgroundColor','white');
     uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[120,20,80,30],'String','OK','Callback',@read_node_data);
     uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[205,20,80,30],'String','Cancel','Callback',@remove_last_node);
 end
 
-function read_node_data(hObject,eventdata)
+function read_node_data(~,~)
 global current_node_config UT_GUI
-    temp=[str2num(get(current_node_config.node_number,'String')) str2num(get(current_node_config.current_erp,'String')) str2num(get(current_node_config.erp,'String'))...
-        str2num(get(current_node_config.current_rest,'String')) str2num(get(current_node_config.rest,'String')) 0 0];
+    temp=[str2double(get(current_node_config.node_number,'String')) str2double(get(current_node_config.current_erp,'String')) str2double(get(current_node_config.erp,'String'))...
+        str2double(get(current_node_config.current_rest,'String')) str2double(get(current_node_config.rest,'String')) 0 0];
     %set(UT_GUI.no_of_nodes_handle,'String',num2str(size(UT_GUI.node_table,1)));
     if(size(temp,2)~=7)
         errordlg('Invalid Entries for node!!!','Check values','modal');
@@ -905,12 +1209,15 @@ global current_node_config UT_GUI
     UT_GUI.nx=UT_GUI.nx+1;
     set(UT_GUI.node_table_handle,'Data',UT_GUI.node_table);
     close(current_node_config.figure_handle);
-    set(UT_GUI.trigger_table_handle,'Data',[get(UT_GUI.trigger_table_handle,'Data');zeros(1,2)]);
-    update_status;
-    update_tooltip;
+    UT_GUI.trigger_table=[get(UT_GUI.trigger_table_handle,'Data');zeros(1,max(1,size(get(UT_GUI.trigger_table_handle,'Data'),2)))];
+    set(UT_GUI.trigger_table_handle,'Data',UT_GUI.trigger_table);
+    update_t_table_on_GUI(0,UT_GUI.trigger_table,UT_GUI.trigger_table);
+%     UT_GUI.trigger_table=[get(UT_GUI.trigger_table_handle,'Data');zeros(1,max(1,size(get(UT_GUI.trigger_table_handle,'Data'),2)))];
+%     set(UT_GUI.trigger_table_handle,'Data',UT_GUI.trigger_table);
+%     %update_tooltip;
 end
 
-function remove_last_node(hObject,eventdata)
+function remove_last_node(hObject,~)
 global UT_GUI
     UT_GUI.nodes_position(end,:)=[];
     try
@@ -927,8 +1234,11 @@ global current_path_config
     ,'Resize','on'...
     ,'Name','Path Settings'...
     ,'NumberTitle','Off');
+    uicontrol('Style','text','String','Path Number','Position',[20,70,25,20]);  
     current_path_config.path_number=uicontrol('Parent',current_path_config.figure_handle,'Style','edit','String',num2str(path_count),'Position',[20,50,25,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','Source Node','Position',[50,70,25,20]);  
     current_path_config.source_node=uicontrol('Parent',current_path_config.figure_handle,'Style','edit','String',num2str(source_node),'Position',[50,50,25,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','Dest. Node','Position',[80,70,25,20]);  
     current_path_config.dest_node=uicontrol('Parent',current_path_config.figure_handle,'Style','edit','String',num2str(dest_node),'Position',[80,50,25,20],'BackgroundColor','white');
     current_path_config.current_fc=uicontrol('Parent',current_path_config.figure_handle,'Style','edit','String','current FC','Position',[110,50,60,20],'BackgroundColor','white');
     current_path_config.def_fc=uicontrol('Parent',current_path_config.figure_handle,'Style','edit','String','Default FC','Position',[175,50,60,20],'BackgroundColor','white');
@@ -938,10 +1248,10 @@ global current_path_config
     uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[205,20,80,30],'String','Cancel','Callback',@remove_last_path);
 end
 
-function read_path_data(hObject,eventdata)
+function read_path_data(~,~)
 global current_path_config UT_GUI
-    temp=[str2num(get(current_path_config.path_number,'String')) str2num(get(current_path_config.source_node,'String')) str2num(get(current_path_config.dest_node,'String'))...
-        str2num(get(current_path_config.current_fc,'String')) str2num(get(current_path_config.def_fc,'String')) str2num(get(current_path_config.current_bc,'String')) str2num(get(current_path_config.def_bc,'String'))];
+    temp=[str2double(get(current_path_config.path_number,'String')) str2double(get(current_path_config.source_node,'String')) str2double(get(current_path_config.dest_node,'String'))...
+        str2double(get(current_path_config.current_fc,'String')) str2double(get(current_path_config.def_fc,'String')) str2double(get(current_path_config.current_bc,'String')) str2double(get(current_path_config.def_bc,'String'))];
     %set(UT_GUI.no_of_paths_handle,'String',num2str(size(UT_GUI.path_table,1)));
     if(size(temp,2)~=7)
         errordlg('Invalid Entries for Path!!!','Check values','modal');
@@ -951,17 +1261,16 @@ global current_path_config UT_GUI
     UT_GUI.px=UT_GUI.px+1;
     set(UT_GUI.path_table_handle,'Data',UT_GUI.path_table);
     close(current_path_config.figure_handle);
-    update_status;
 end
 
-function remove_last_path(hObject,eventdata)
+function remove_last_path(hObject,~)
 global UT_GUI
     delete(UT_GUI.paths_handle(end));
     UT_GUI.paths_handle(end)=[];
     close(get(hObject,'Parent'));
 end
 
-function remove_node(hObject,eventdata)
+function remove_node(~,~)
 global UT_GUI
     UT_GUI.node_table(end,:)=[];
     %set(UT_GUI.no_of_nodes_handle,'String',num2str(size(UT_GUI.node_table,1)));
@@ -975,11 +1284,10 @@ global UT_GUI
         UT_GUI.nodes_position(end,:)=[];
     end
     set(UT_GUI.node_pos,'XData',UT_GUI.nodes_position(:,1),'YData',UT_GUI.nodes_position(:,2));
-    update_status;
-    update_tooltip;
+    %update_tooltip;
 end
 
-function remove_path(hObject,eventdata)
+function remove_path(~,~)
 global UT_GUI
     UT_GUI.path_table(end,:)=[];
     %set(UT_GUI.no_of_paths_handle,'String',num2str(size(UT_GUI.path_table,1)));
@@ -992,10 +1300,9 @@ global UT_GUI
         UT_GUI.paths_handle(end)=[];
     catch
     end
-    update_status;
 end
 
-function reset_gui(hObject,eventdata)
+function reset_gui(~,eventdata)
     global UT_GUI
     try
         close_gui(UT_GUI.main_gui_handle,eventdata);
@@ -1004,7 +1311,7 @@ function reset_gui(hObject,eventdata)
     end
 end
 
-function close_gui(hObject,eventdata)
+function close_gui(hObject,~)
 global UT_GUI
     try
         fclose(UT_GUI.udp_handle);
