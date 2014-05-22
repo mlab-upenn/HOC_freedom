@@ -222,8 +222,8 @@ global UT_GUI
 end
 
 function plot_signals(option,current_node_activation_status,time_now,no_of_nodes)
-    persistent prev_value plot_handle time_frame offset_matrix working_handle_index handle_list
-    global UT_GUI
+    persistent prev_value plot_handle text_handle time_frame offset_matrix working_handle_index handle_list
+    global UT_GUI change changed_node signals_list
     if(option==0)
         time_frame=100;
         working_handle_index=9999*ones(1,no_of_nodes);
@@ -238,6 +238,8 @@ function plot_signals(option,current_node_activation_status,time_now,no_of_nodes
         handle_list(5,1)=1;
         offset_matrix=zeros(1,no_of_nodes);
         prev_value=[];
+        plot_handle=[];
+        text_handle=[];
         hold on;%allows adding plots onto the same axes
         for i=1:no_of_nodes
             offset_matrix(i)=1.5*(no_of_nodes-i);
@@ -246,7 +248,7 @@ function plot_signals(option,current_node_activation_status,time_now,no_of_nodes
             colorcode=color_string(mod(i,6)+1);
             set(plot_handle(i),'Color',colorcode);
             temp_string=strcat('Node ',num2str(i));
-            text('Parent',UT_GUI.plot_axis_handle,'Units','data','Position',[0,1.5*(no_of_nodes-i)+0.75],'String',temp_string,'Color','w');
+            text_handle(i)=text('Parent',UT_GUI.plot_axis_handle,'Units','data','Position',[0,1.5*(no_of_nodes-i)+0.75],'String',temp_string,'Color','w');
         end
         set(UT_GUI.plot_axis_handle,'XTick',[],'YTick',[]);
         set(UT_GUI.plot_axis_handle,'XTickLabel',[],'YTickLabel',[]);
@@ -254,40 +256,134 @@ function plot_signals(option,current_node_activation_status,time_now,no_of_nodes
         ylim([0 1.5*no_of_nodes]);
         xlim([0 time_frame]);
         hold off;%stop addition
-    else
-        prev_value(1,:)=[];
-        prev_value(end+1,:)=current_node_activation_status+offset_matrix;
-        handle_list(3,:)=handle_list(3,:)-1;
-        handle_list(5,:)=handle_list(5,:)-1;
-        for i=1:no_of_nodes,
-            if((current_node_activation_status(i)==1)&&(offset_matrix(i)==prev_value(end-1,i)))
-                temp_array(1)=time_now;%start time
-                temp_array(3)=time_frame;%current_position
-                temp_array(4)=1.5*(no_of_nodes-i)+1;%y axis position
-                temp_array(5)=time_frame;%start position on plot
-                temp_array(2)=text('Parent',UT_GUI.plot_axis_handle,'Units','data','Position',[time_frame,temp_array(4)],'String',[],'HitTest','off','Color','w');
-                handle_list(:,end+1)=temp_array;
-                almost_finished_handle=working_handle_index(i);
-                working_handle_index(i)=size(handle_list,2);
-                if(almost_finished_handle<=size(handle_list,2))
-                    handle_list(5,almost_finished_handle)=handle_list(3,almost_finished_handle);
-                    handle_list(3,almost_finished_handle)=(time_frame+handle_list(3,almost_finished_handle))/2-1;
-                    set(handle_list(2,almost_finished_handle),'Position',[handle_list(3,almost_finished_handle),handle_list(4,almost_finished_handle)],'String',num2str(time_now-handle_list(1,almost_finished_handle)));
+    end
+    if(change~=0)
+        prev_value=prev_value-repmat(offset_matrix,100,1);
+        if(change==-1)
+            %find the text handles to be deleted from the plot
+            victim_index=sum(changed_node>signals_list)+1;
+            victim_handles=1.5*(no_of_nodes+1-victim_index)+1;
+            hit_list=find(handle_list(4,:)==victim_handles);
+            affected_list=find(handle_list(4,:)>victim_handles);
+            handle_list(4,affected_list)=handle_list(4,affected_list)-1.5;
+            delete(handle_list(2,hit_list));
+            delete(text_handle(victim_index));
+            delete(plot_handle(victim_index));
+            text_handle(victim_index)=[];
+            handle_list(:,hit_list)=[];
+            plot_handle(victim_index)=[];
+            prev_value(:,victim_index)=[];
+            working_handle_index(victim_index)=[];
+            offset_matrix(1)=[];
+            for i=1:no_of_nodes
+                set(text_handle(i),'Position',[0,offset_matrix(i)+0.75]);
+            end
+            %reduce the number of nodes in the graph, resize the remaining
+            %plots
+            %make sure to maintain the labels of the y axis
+        else
+            victim_index=find(changed_node==signals_list);
+            victim_handles=1.5*(no_of_nodes-victim_index)+1;
+            affected_list=find(handle_list(4,:)>=victim_handles);
+            handle_list(4,affected_list)=handle_list(4,affected_list)+1.5;
+            color_string='ymcrgb';
+            offset_matrix=[1.5*(no_of_nodes-1) offset_matrix];
+            hold on;
+            if(changed_node==max(signals_list))
+                prev_value(:,end+1)=zeros(time_frame,1);
+                plot_handle(end+1)=plot(UT_GUI.plot_axis_handle,prev_value(:,end));
+                colorcode=color_string(mod(changed_node,6)+1);
+                set(plot_handle(end),'Color',colorcode);
+                temp_string=strcat('Node ',num2str(changed_node));
+                text_handle(end+1)=text('Parent',UT_GUI.plot_axis_handle,'Units','data','Position',[0,offset_matrix(end)+0.75],'String',temp_string,'Color','w');
+                working_handle_index(end+1)=9999;
+                for i=1:no_of_nodes
+                    set(text_handle(i),'Position',[0,offset_matrix(i)+0.75]);
+                end
+            else if(changed_node==min(signals_list))
+                    prev_value=[zeros(time_frame,1) prev_value];
+                    plot_handle=[plot(UT_GUI.plot_axis_handle,prev_value(:,1)) plot_handle];
+                    colorcode=color_string(mod(changed_node,6)+1);
+                    set(plot_handle(1),'Color',colorcode);
+                    temp_string=strcat('Node ',num2str(changed_node));
+                    text_handle=[text('Parent',UT_GUI.plot_axis_handle,'Units','data','Position',[0,offset_matrix(1)+0.75],'String',temp_string,'Color','w') text_handle];
+                    working_handle_index=[9999 working_handle_index];
+                    for i=1:no_of_nodes
+                        set(text_handle(i),'Position',[0,offset_matrix(i)+0.75]);
+                    end
+                else
+                    temp_prev_value=zeros(time_frame,no_of_nodes);
+                    temp_plot_handle=zeros(1,no_of_nodes);
+                    temp_text_handle=zeros(1,no_of_nodes);
+                    temp_working_handle_index=zeros(1,no_of_nodes);
+                    for i=1:no_of_nodes
+                        if(signals_list(i)<changed_node)
+                            temp_prev_value(:,i)=prev_value(:,i);
+                            temp_plot_handle(i)=plot_handle(i);
+                            temp_text_handle(i)=text_handle(i);
+                            temp_working_handle_index(i)=working_handle_index(i);
+                            set(temp_text_handle(i),'Position',[0,offset_matrix(i)+0.75]);
+                        else if(signals_list(i)>changed_node)
+                                temp_prev_value(:,i)=prev_value(:,i-1);
+                                temp_plot_handle(i)=plot_handle(i-1);
+                                temp_text_handle(i)=text_handle(i-1);
+                                set(temp_text_handle(i),'Position',[0,offset_matrix(i)+0.75]);
+                                temp_working_handle_index(i)=working_handle_index(i-1);
+                            else
+                                temp_prev_value(:,i)=zeros(time_frame,1);
+                                temp_plot_handle(i)=plot(UT_GUI.plot_axis_handle,temp_prev_value(:,i));
+                                colorcode=color_string(mod(changed_node,6)+1);
+                                set(temp_plot_handle(i),'Color',colorcode);
+                                temp_string=strcat('Node ',num2str(changed_node));
+                                temp_text_handle(i)=text('Parent',UT_GUI.plot_axis_handle,'Units','data','Position',[0,offset_matrix(i)+0.75],'String',temp_string,'Color','w');
+                                temp_working_handle_index(i)=9999;
+                            end
+                        end
+                    end
+                    prev_value=temp_prev_value;
+                    plot_handle=temp_plot_handle;
+                    text_handle=temp_text_handle;
+                    working_handle_index=temp_working_handle_index;
                 end
             end
-            set(plot_handle(i),'YData',prev_value(:,i));
+            hold off;
         end
-        hit_list=find(handle_list(5,:)<=1);
-        delete(handle_list(2,hit_list));
-        handle_list(:,hit_list)=[];
-        for i=1:no_of_nodes,
-            working_handle_index(i)=working_handle_index(i)-sum(working_handle_index(i)>hit_list);
-        end
-        for i=1:size(handle_list,2)
-            set(handle_list(2,i),'Position',[handle_list(3,i),handle_list(4,i)]);
-        end
-        pause(0.000001);
+        prev_value=prev_value+repmat(offset_matrix,100,1);
+        ylim([0 1.5*no_of_nodes]);
+        change=0;
     end
+    prev_value(1,:)=[];
+    prev_value(end+1,:)=current_node_activation_status+offset_matrix;
+    handle_list(3,:)=handle_list(3,:)-1;
+    handle_list(5,:)=handle_list(5,:)-1;
+    for i=1:no_of_nodes,
+        if((current_node_activation_status(i)==1)&&(offset_matrix(i)==prev_value(end-1,i)))
+            temp_array(1)=time_now;%start time
+            temp_array(3)=time_frame;%current_position
+            temp_array(4)=1.5*(no_of_nodes-i)+1;%y axis position
+            temp_array(5)=time_frame;%start position on plot
+            temp_array(2)=text('Parent',UT_GUI.plot_axis_handle,'Units','data','Position',[time_frame,temp_array(4)],'String',[],'HitTest','off','Color','w');
+            handle_list(:,end+1)=temp_array;
+            almost_finished_handle=working_handle_index(i);
+            working_handle_index(i)=size(handle_list,2);
+            if(almost_finished_handle<=size(handle_list,2))
+                handle_list(5,almost_finished_handle)=handle_list(3,almost_finished_handle);
+                handle_list(3,almost_finished_handle)=(time_frame+handle_list(3,almost_finished_handle))/2-1;
+                set(handle_list(2,almost_finished_handle),'Position',[handle_list(3,almost_finished_handle),handle_list(4,almost_finished_handle)],'String',num2str(time_now-handle_list(1,almost_finished_handle)));
+            end
+        end
+        set(plot_handle(i),'YData',prev_value(:,i));
+    end
+    hit_list=find(handle_list(5,:)<=1);
+    delete(handle_list(2,hit_list));
+    handle_list(:,hit_list)=[];
+    for i=1:no_of_nodes,
+        working_handle_index(i)=working_handle_index(i)-sum(working_handle_index(i)>hit_list);
+    end
+    for i=1:size(handle_list,2)
+        set(handle_list(2,i),'Position',[handle_list(3,i),handle_list(4,i)]);
+    end
+    pause(0.000001);
 end
 
 function pace_nodes(~,~)
@@ -377,7 +473,7 @@ end
 
 function setup_display_routine
     global UT_GUI
-    UT_GUI.periodic_function_handle=timer('StartDelay',0,'Period',0.001,'TasksToExecute',9999999,'ExecutionMode','fixedSpacing','BusyMode','drop');%Period should be 0.001
+    UT_GUI.periodic_function_handle=timer('StartDelay',0,'Period',0.001,'TasksToExecute',9999999,'ExecutionMode','fixedDelay','BusyMode','drop');%Period should be 0.001
     UT_GUI.periodic_function_handle.TimerFcn=@plot_refresher;
 end
 
@@ -392,8 +488,8 @@ function stop_display_routine
 end
 
 function plot_refresher(~,~)
-    global UT_GUI changed signals_list
-    persistent option temp_nodes_states temp_node_activation_status temp_path_states temp_current_time no_of_nodes
+    global UT_GUI change signals_list no_of_nodes
+    persistent option temp_nodes_states temp_node_activation_status temp_path_states temp_current_time
     if(~isempty(UT_GUI.current_nodes_states))
         temp_nodes_states=UT_GUI.current_nodes_states(1,:);
         temp_node_activation_status=UT_GUI.current_node_activation_status(1,:);
@@ -406,9 +502,7 @@ function plot_refresher(~,~)
     end 
     if(UT_GUI.pause==0)
         if(UT_GUI.ok_to_display==1)
-            if(changed==1)
-                changed=0;
-                option=0;
+            if(change~=0)
                 no_of_nodes=size(signals_list,2);
             end
             plot_signals(option,temp_node_activation_status(signals_list),temp_current_time,no_of_nodes);
@@ -443,7 +537,7 @@ function pause_model(hObject,~)
 end
 
 function display_signals_or_tables(hObject,~)
-    global UT_GUI changed signals_list
+    global UT_GUI change signals_list no_of_nodes
     if(strcmp(get(hObject,'String'),'Show Signals')==1)
         if(config_check~=1)
             return;
@@ -464,12 +558,13 @@ function display_signals_or_tables(hObject,~)
         for i=1:UT_GUI.nx,
             UT_GUI.signals_selection_button_handle(i)=uicontrol('Parent',UT_GUI.panel4_handle,'Style','radiobutton'...
             ,'String',''...
-            ,'Units','Pixels'...
-            ,'Position',[2 (((2*(UT_GUI.nx-i+1)-1)*uipanel_position(4))/(UT_GUI.nx*2)) uipanel_position(3)-5 uipanel_position(3)-5]...
+            ,'Units','Normalized'...
+            ,'Position',[0.005 ((2*(UT_GUI.nx-i+1)-1)/(UT_GUI.nx*2)) 0.99 0.99*uipanel_position(3)/uipanel_position(4)]...
             ,'BackgroundColor',[0.7 0.9 0.8]...
             ,'Callback',@signals_to_display_picker,'Value',1);
         end
-        changed=1;
+        no_of_nodes=UT_GUI.nx;
+        change=0;
         signals_list=1:UT_GUI.nx;
         UT_GUI.ok_to_display=1;
         set(hObject,'String','Show Tables');
@@ -488,15 +583,18 @@ function display_signals_or_tables(hObject,~)
 end
 
 function signals_to_display_picker(hObject,eventdata)
-global UT_GUI signals_list changed
+global UT_GUI signals_list change changed_node
     for i=1:UT_GUI.nx
         if(eq(hObject,UT_GUI.signals_selection_button_handle(i)))
             if(sum(signals_list==i))
+                change=-1;
                 signals_list(signals_list==i)=[];
             else
+                change=1;
                 signals_list(end+1)=i;
+                signals_list=sort(signals_list);
             end
-            changed=1;
+            changed_node=i;
             return;
         end
     end
