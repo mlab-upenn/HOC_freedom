@@ -13,6 +13,8 @@ function VHM_GUI
     UT_GUI.ok_to_display=0;
     UT_GUI.logging_in_progress=0;
     UT_GUI.update_in_progress=0;
+    UT_GUI.mode=0;
+    UT_GUI.formal_mode=0;
     UT_GUI.nx=0;
     UT_GUI.px=0;
     UT_GUI.node_table=[];
@@ -31,22 +33,54 @@ function VHM_GUI
         ,'NumberTitle','Off');
         %,'CloseRequestFcn',@close_gui);      
     set(UT_GUI.main_gui_handle,'MenuBar','none');
-    UT_GUI.file_menu=uimenu(UT_GUI.main_gui_handle,'Label','File','HandleVisibility','off');
-    UT_GUI.file_menu_new_option=uimenu(UT_GUI.file_menu,'Label','New Model','Callback',@new_model,'Accelerator','n','HandleVisibility','off');
-    UT_GUI.file_menu_load_option=uimenu(UT_GUI.file_menu,'Label','Load Model','Callback',@load_model,'Accelerator','o','HandleVisibility','off');
-    UT_GUI.file_menu_save_option=uimenu(UT_GUI.file_menu,'Label','Save Model','Callback',@save_model,'Accelerator','s','HandleVisibility','off');
-    UT_GUI.file_menu_exit_option=uimenu(UT_GUI.file_menu,'Label','Exit','Callback','close all;clear all','Accelerator','x','HandleVisibility','off');
-    UT_GUI.edit_menu=uimenu(UT_GUI.main_gui_handle,'Label','Edit','HandleVisibility','off');
-    UT_GUI.edit_menu_add_path_option=uimenu(UT_GUI.edit_menu,'Label','Add path','Callback',@add_path,'Accelerator','a','HandleVisibility','off');
-    UT_GUI.edit_menu_remove_node_option=uimenu(UT_GUI.edit_menu,'Label','Remove Node','Callback',@remove_node,'Accelerator','r','HandleVisibility','off');
-    UT_GUI.edit_menu_remove_path_option=uimenu(UT_GUI.edit_menu,'Label','Remove Path','Callback',@remove_path,'Accelerator','d','HandleVisibility','off');
-    UT_GUI.play_mode=uimenu(UT_GUI.main_gui_handle,'Label','Mode','HandleVisibility','off');
-    UT_GUI.play_mode_current_option=uimenu(UT_GUI.play_mode,'Label','Current','Callback',@switch_modes,'HandleVisibility','off','Checked','on');
-    UT_GUI.play_mode_retro_option=uimenu(UT_GUI.play_mode,'Label','Playback','Callback',@switch_modes,'HandleVisibility','off');
-    UT_GUI.miscellaneous_option=uimenu(UT_GUI.main_gui_handle,'Label','Miscellany','HandleVisibility','off');
-    UT_GUI.load_trigger_table_handle=uimenu(UT_GUI.miscellaneous_option,'Label','Upload Pace Table','Callback',@upload_trigger_table,'Accelerator','u','HandleVisibility','off');
-    UT_GUI.pace_nodes_handle=uimenu(UT_GUI.miscellaneous_option,'Label','Pace Now','Callback',@pace_nodes,'Accelerator','p','HandleVisibility','off','Enable','off');
-    UT_GUI.view_history_handle=uimenu(UT_GUI.miscellaneous_option,'Label','View Log','Callback',@display_log,'Accelerator','l','HandleVisibility','off');
+    set(UT_GUI.main_gui_handle,'ToolBar','none');
+    UT_GUI.toolbar_handle=uitoolbar(UT_GUI.main_gui_handle);
+    UT_GUI.new_file_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\new.png'),'TooltipString','New Model','ClickedCallback',@new_model);
+    UT_GUI.load_file_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\open-file.png'),'TooltipString','Load Model','ClickedCallback',@load_model);
+    UT_GUI.save_file_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\save.png'),'TooltipString','Save Model','ClickedCallback',@save_model);
+    UT_GUI.add_path_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\add_path.png'),'TooltipString','Add path','ClickedCallback',@add_path);
+    UT_GUI.delete_node_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\delete_node.png'),'TooltipString','Remove Node','ClickedCallback',@remove_node);
+    UT_GUI.delete_path_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\delete_path.png'),'TooltipString','Remove Path','ClickedCallback',@remove_path);
+    UT_GUI.play_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\clock.png'),'TooltipString','Current Mode','ClickedCallback',@switch_modes,'Tag','current');
+    UT_GUI.model_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\heart_model.png'),'TooltipString','Hardware Heart Mode','ClickedCallback',@switch_modes,'Tag','hardware');
+    UT_GUI.pacemaker_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\no_pacemaker.png'),'TooltipString','Pacemaker Off','ClickedCallback',@switch_modes,'Tag','poff');
+    UT_GUI.load_trigger_table_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\upload.png'),'TooltipString','Upload Trigger Table','ClickedCallback',@upload_trigger_table);
+    UT_GUI.view_history_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\log.png'),'TooltipString','View Heart Log','ClickedCallback',@display_log);
+    %UT_GUI.file_menu=uimenu(UT_GUI.main_gui_handle,'Label',str,'HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/new.png"/><html>';
+%     UT_GUI.file_menu_new_option=uimenu('Label',str,'Callback',@new_model,'Accelerator','n','HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/open-file.png"/><html>';
+%     UT_GUI.file_menu_load_option=uimenu('Label',str,'Callback',@load_model,'Accelerator','o','HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/save.png"/><html>';
+%     UT_GUI.file_menu_save_option=uimenu('Label',str,'Callback',@save_model,'Accelerator','s','HandleVisibility','off');
+%     %UT_GUI.file_menu_exit_option=uimenu(UT_GUI.file_menu,'Label','Exit','Callback','close all;clear all','Accelerator','x','HandleVisibility','off');
+%     %UT_GUI.edit_menu=uimenu(UT_GUI.main_gui_handle,'Label','Edit','HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/add_path.png"/><html>';
+%     UT_GUI.edit_menu_add_path_option=uimenu('Label',str,'Callback',@add_path,'Accelerator','a','HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/delete_node.png"/><html>';
+%     UT_GUI.edit_menu_remove_node_option=uimenu('Label',str,'Callback',@remove_node,'Accelerator','r','HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/delete_path.png"/><html>';
+%     UT_GUI.edit_menu_remove_path_option=uimenu('Label',str,'Callback',@remove_path,'Accelerator','d','HandleVisibility','off');
+%     %UT_GUI.play_mode=uimenu(UT_GUI.main_gui_handle,'Label','Mode','HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/clock.png"/><html>';
+%     UT_GUI.play_mode_current_option=uimenu('Label',str,'Callback',@switch_modes,'HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/history.png"/><html>';
+%     UT_GUI.play_mode_retro_option=uimenu('Label',str,'Callback',@switch_modes,'HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/software-icon.png"/><html>';
+%     UT_GUI.execution_mode_formal_option=uimenu('Label',str,'Callback',@switch_modes,'HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/ic_heart.png"/><html>';
+%     UT_GUI.execution_mode_formal_option=uimenu('Label',str,'Callback',@switch_modes,'HandleVisibility','off');
+%     %UT_GUI.miscellaneous_option=uimenu(UT_GUI.main_gui_handle,'Label','Miscellany','HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/pacemaker.png"/><html>';
+%     UT_GUI.execution_mode_formal_option=uimenu('Label',str,'Callback',@switch_modes,'HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/no_pacemaker.png"/><html>';
+%     UT_GUI.execution_mode_formal_option=uimenu('Label',str,'Callback',@switch_modes,'HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/upload.png"/><html>';
+%     UT_GUI.load_trigger_table_handle=uimenu('Label',str,'Callback',@upload_trigger_table,'Accelerator','u','HandleVisibility','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/pace.png"/><html>';
+%     UT_GUI.pace_nodes_handle=uimenu('Label',str,'Callback',@pace_nodes,'Accelerator','p','HandleVisibility','off','Enable','off');
+%     str='<html><img src="file:/H:/VHM/HOC_freedom/HOC_freedom/icons/log.png"/><html>';
+%     UT_GUI.view_history_handle=uimenu('Label',str,'Callback',@display_log,'Accelerator','l','HandleVisibility','off');
     UT_GUI.heart_axes_handle=axes('Units','normalized'...
     ,'Position',[0.005,0.195,0.47,0.8]...
         ,'Xlim',[0 530]...
@@ -80,13 +114,12 @@ function VHM_GUI
 %         'Callback','');
         %'cdata',UT_GUI.pause_button_image,...
     UT_GUI.position_slider=uicontrol('Parent',UT_GUI.panel2_handle,'Style','slider'...
-        ,'Min',1,...
+        ,'Min',0,...
         'Max',10,...
-        'Value',1,...
+        'Value',0,...
         'Units','normalized'...
         ,'Position',[0.05 0.8 0.705 0.15]...
-        ,'SliderStep',[0.0001 0.001]...
-        ,'Callback',@change_position);
+        ,'SliderStep',[0.0001 0.001]);
     UT_GUI.max_time_display=uicontrol('Parent',UT_GUI.panel2_handle,'Style','text','FontSize',14,'String','Inf'...
         ,'Units','normalized'...
         ,'Position',[0.76 0.8 0.055 0.15]);
@@ -175,7 +208,7 @@ function VHM_GUI
         ,'ColumnName',{'Trigger Count'}...
         ,'CellEditCallback',@update_meaning...
         ,'TooltipString','Pacing setup table');
-    UT_GUI.im=imread('H:\VHM\HOC_freedom\HOC_freedom\new_codes\EP.jpg');
+    UT_GUI.im=imread('H:\VHM\HOC_freedom\HOC_freedom\new_codes\EP_pacemaker.jpg');
     UT_GUI.im=imagesc(UT_GUI.im);
     UT_GUI.nodes_position=[];
     UT_GUI.node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','r','MarkerFaceColor','r','HitTest','off');%,'ButtonDownFcn',@button_press);
@@ -188,6 +221,124 @@ function VHM_GUI
     UT_GUI.relaxed_nodes_position=zeros(1,2);
     set(UT_GUI.im,'HitTest','off');
     set(UT_GUI.heart_axes_handle,'ButtonDownFcn',@button_press);
+end
+
+function load_model_generic(~,~)
+    load_options=figure('Units', 'normalized'...
+        ,'Position', [0.5 0.5 0.25 0.25]...
+        ,'Resize','off'...
+        ,'Name','Load Model'...
+        ,'NumberTitle','Off','MenuBar','none');
+    uicontrol('Style','text','String','Pick a model to load','Units','normalized','Position',[0.095 0.85 .4 .1]);
+    uicontrol('Style','popup','String',{'Model 1','Model 2','Model 3'},'Units','normalized','Position',[.595 0.95 .4 .005]);
+end
+
+function x=customize_image(image_path)
+    [x map]=imread(image_path);
+    try
+        x=ind2rgb(x,map);
+    catch
+    end
+    for i=1:size(x,1)
+        for j=1:size(x,2)
+            if(sum(x(i,j,:))==0)
+                x(i,j,:)=[255 255 255];
+            end
+        end
+    end
+    
+end
+function matrix=cell_to_mat(cell_array)
+matrix=zeros(size(cell_array));
+    for i=1:size(cell_array,1)
+        for j=1:size(cell_array,2)
+            matrix(i,j)=cell2mat(cell_array(i,j));
+        end
+    end
+end
+
+function formal_heart_model(varargin)
+    global UT_GUI
+    persistent node_table path_table prev_nodes_states prev_node_activation_status prev_path_states time_stamp LOG_SIZE
+    if(nargin==0)
+        LOG_SIZE=1000;
+        node_table=num2cell(UT_GUI.node_table);
+        path_table=num2cell(UT_GUI.path_table);
+        prev_nodes_states=zeros(1,UT_GUI.nx);
+        prev_node_activation_status=zeros(1,UT_GUI.nx);
+        prev_path_states=zeros(1,UT_GUI.px);
+        time_stamp=1;
+        UT_GUI.nodes_states_history=zeros(LOG_SIZE,UT_GUI.nx);
+        UT_GUI.node_activation_status_history=zeros(LOG_SIZE,UT_GUI.nx);
+        UT_GUI.path_states_history=zeros(LOG_SIZE,UT_GUI.px);
+        UT_GUI.time_stamp_history=zeros(LOG_SIZE,1);
+    else
+        [node_table,path_table]=heart_model(node_table,path_table);%add your implementation of heart model here
+        current_nodes_states=cell2mat(node_table(:,1))';
+        current_node_activation_status=cell2mat(node_table(:,6))';
+        current_path_states=cell2mat(path_table(:,1))';
+        if(sum(prev_nodes_states-current_nodes_states)||sum(prev_node_activation_status-current_node_activation_status)||sum(prev_path_states-current_path_states))
+            prev_nodes_states=current_nodes_states;
+            UT_GUI.current_nodes_states=prev_nodes_states;
+            prev_node_activation_status=current_node_activation_status;
+            UT_GUI.current_node_activation_status=prev_node_activation_status;
+            prev_path_states=current_path_states;
+            UT_GUI.current_path_states=prev_path_states;
+            UT_GUI.current_time=time_stamp;
+            UT_GUI.nodes_states_history(end+1,:)=prev_nodes_states;
+            UT_GUI.node_activation_status_history(end+1,:)=prev_node_activation_status;
+            UT_GUI.path_states_history(end+1,:)=prev_path_states;
+            UT_GUI.time_stamp_history(end+1,:)=time_stamp;
+            UT_GUI.nodes_states_history(1,:)=[];
+            UT_GUI.node_activation_status_history(1,:)=[];
+            UT_GUI.path_states_history(1,:)=[];
+            UT_GUI.time_stamp_history(1,:)=[];
+            disp(UT_GUI.time_stamp_history(1));
+        end
+        time_stamp=time_stamp+1;
+    end
+end
+
+function change_position(~,~)
+    global UT_GUI
+    new_time_stamp=get(UT_GUI.position_slider,'Value');
+    UT_GUI.start_point=max(find(UT_GUI.time_stamp_history<=new_time_stamp));
+end
+
+function switch_modes(hObject,~)
+    global UT_GUI
+    switch(get(hObject,'Tag'))
+    case 'current'
+        if(~UT_GUI.formal_mode)
+            gather_data(0);
+        end
+        UT_GUI.start_point=1;
+        set(UT_GUI.position_slider,'Callback',@change_position);
+        set(UT_GUI.position_slider,'Min',UT_GUI.time_stamp_history(1));
+        set(UT_GUI.position_slider,'Max',UT_GUI.time_stamp_history(end));
+        set(UT_GUI.position_slider,'Value',UT_GUI.time_stamp_history(1));
+        set(UT_GUI.max_time_display,'String',strcat(num2str(double(uint64((UT_GUI.time_stamp_history(end)-UT_GUI.time_stamp_history(1))/10))/100),'s'),'FontSize',8);
+        set(hObject,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\history.png'),'TooltipString','Playback Mode','Tag','playback');
+        UT_GUI.mode=1;
+    case 'playback'
+        set(UT_GUI.position_slider,'Callback','');
+        set(UT_GUI.position_slider,'Min',0);
+        set(UT_GUI.position_slider,'Value',0);
+        set(UT_GUI.position_slider,'Max',10);
+        set(UT_GUI.max_time_display,'String','Inf','FontSize',14);
+        set(hObject,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\clock.png'),'TooltipString','Current Mode','Tag','current');
+        UT_GUI.mode=0;
+    case 'hardware'
+        UT_GUI.formal_mode=1;
+        set(hObject,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\software-icon.png'),'TooltipString','Software Heart Mode','Tag','software');
+    case 'software'
+        UT_GUI.formal_mode=0;
+        set(hObject,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\heart_model.png'),'TooltipString','Hardware Heart Mode','Tag','hardware');
+    case 'pon'
+        %under construction
+    case 'poff'
+        %under construction
+    end
 end
 
 function new_model(~,~)
@@ -391,34 +542,37 @@ function pace_nodes(~,~)
     fprintf(UT_GUI.udp_handle,'pppp');
 end
 
-function run_model(hObject,eventdata)
-    global UT_GUI
+function run_model(hObject,~)
+    global UT_GUI start_time
     persistent button_states
     if(config_check~=1)
         return;
     end
     if(strcmp(get(hObject,'String'),'Play'))
-        response=update_tables;
+        response=1;
+        if(UT_GUI.formal_mode&&~UT_GUI.mode)
+            formal_heart_model;
+        end
+        if(~UT_GUI.mode&&~UT_GUI.formal_mode)
+            response=update_tables;
+        end
         if(response==1)
              set(hObject,'String','Stop');
-            button_states.view_history=get(UT_GUI.view_history_handle,'Enable');
-            button_states.new_option=get(UT_GUI.file_menu_new_option,'Enable');
-            button_states.load_option=get(UT_GUI.file_menu_load_option,'Enable');
-            button_states.save_option=get(UT_GUI.file_menu_save_option,'Enable');
-            button_states.edit_menu=get(UT_GUI.edit_menu,'Enable');
-            button_states.mode_menu=get(UT_GUI.play_mode,'Enable');
-            button_states.upload_trigger_table=get(UT_GUI.load_trigger_table_handle,'Enable');
-            set(UT_GUI.view_history_handle,'Enable','off');
-            set(UT_GUI.file_menu_new_option,'Enable','off');
-            set(UT_GUI.file_menu_load_option,'Enable','off');
-            set(UT_GUI.file_menu_save_option,'Enable','off');
-            set(UT_GUI.edit_menu,'Enable','off');
-            set(UT_GUI.play_mode,'Enable','off');
-            set(UT_GUI.load_trigger_table_handle,'Enable','off');
-            set(UT_GUI.node_table_handle,'Enable','off');
-            set(UT_GUI.path_table_handle,'Enable','off');
-            set(UT_GUI.trigger_table_handle,'Enable','off');
-            set(UT_GUI.pace_nodes_handle,'Enable','on');
+%             button_states.view_history=get(UT_GUI.view_history_handle,'Enable');
+%             button_states.new_option=get(UT_GUI.new_file_handle,'Enable');
+%             button_states.load_option=get(UT_GUI.load_file_handle,'Enable');
+%             button_states.save_option=get(UT_GUI.save_file_handle,'Enable');
+%             button_states.add_path_option=get(UT_GUI.add_path_handle,'Enable');
+%             button_states.upload_trigger_table=get(UT_GUI.load_trigger_table_handle,'Enable');
+%             set(UT_GUI.view_history_handle,'Enable','off');
+%             set(UT_GUI.new_file_handle,'Enable','off');
+%             set(UT_GUI.load_file_handle,'Enable','off');
+%             set(UT_GUI.save_file_handle,'Enable','off');
+%             set(UT_GUI.load_trigger_table_handle,'Enable','off');
+%             set(UT_GUI.node_table_handle,'Enable','off');
+%             set(UT_GUI.path_table_handle,'Enable','off');
+%             set(UT_GUI.trigger_table_handle,'Enable','off');
+            set(UT_GUI.pace_button,'Enable','on');
             set(UT_GUI.pause_button_handle,'Enable','on');
             set(UT_GUI.activated_node_pos,'XData',[],'YData',[]);
             set(UT_GUI.relaxed_node_pos,'XData',[],'YData',[]);
@@ -427,55 +581,77 @@ function run_model(hObject,eventdata)
             set(UT_GUI.relaxed_node_pos,'Visible','on');
             set(UT_GUI.excited_node_pos,'Visible','on');
             set(UT_GUI.heart_axes_handle,'ButtonDownFcn','');
-            setup_display_routine;
             %set up of the buffers
-            UT_GUI.current_nodes_states=ones(1,UT_GUI.nx);
-            UT_GUI.current_node_activation_status=zeros(1,UT_GUI.nx);
-            UT_GUI.current_path_states=ones(1,UT_GUI.px);
-            UT_GUI.current_time=0;        
-            UT_GUI.udp_handle = udp('192.168.90.90', 4950, 'LocalPort', 4950);
-            set(UT_GUI.udp_handle,'DatagramTerminateMode','on');
-            set(UT_GUI.udp_handle, 'ReadAsyncMode', 'continuous');
-            UT_GUI.udp_handle.DatagramReceivedFcn=@DatagramReceivedCallback;
-            fopen(UT_GUI.udp_handle);
-            fprintf(UT_GUI.udp_handle,'x');
-            start(UT_GUI.periodic_function_handle);
+            if(UT_GUI.formal_mode&&~UT_GUI.mode)
+                setup_display_routine(0,99999999,@plot_refresher);
+                start(UT_GUI.periodic_function_handle);
+            end
+            if(UT_GUI.mode)
+                if(UT_GUI.start_point==size(UT_GUI.time_stamp_history,1))
+                    UT_GUI.start_point=1;
+                end
+                UT_GUI.current_nodes_states=UT_GUI.nodes_states_history(UT_GUI.start_point:end,:);
+                UT_GUI.current_node_activation_status=UT_GUI.node_activation_status_history(UT_GUI.start_point:end,:);
+                UT_GUI.current_path_states=UT_GUI.path_states_history(UT_GUI.start_point:end,:);
+                UT_GUI.current_time=UT_GUI.time_stamp_history(UT_GUI.start_point:end,:);
+                setup_display_routine(0.5,99999999,@plot_refresher);
+                start(UT_GUI.periodic_function_handle);
+            else
+                if(~UT_GUI.formal_mode)
+                    UT_GUI.current_nodes_states=ones(1,UT_GUI.nx);
+                    UT_GUI.current_node_activation_status=zeros(1,UT_GUI.nx);
+                    UT_GUI.current_path_states=ones(1,UT_GUI.px);
+                    UT_GUI.current_time=0;
+                    setup_display_routine(0,99999999,@plot_refresher);%very large number of executions for approximation to infinite executions
+                    UT_GUI.udp_handle = udp('192.168.90.90', 4950, 'LocalPort', 4950);
+                    set(UT_GUI.udp_handle,'DatagramTerminateMode','on');
+                    set(UT_GUI.udp_handle, 'ReadAsyncMode', 'continuous');
+                    UT_GUI.udp_handle.DatagramReceivedFcn=@DatagramReceivedCallback;
+                    fopen(UT_GUI.udp_handle);
+                    fprintf(UT_GUI.udp_handle,'x');
+                    start(UT_GUI.periodic_function_handle);
+                end
+            end
+            
         else
             errordlg('Could not run model','error','modal');
             return;
         end
     else
-        UT_GUI.udp_handle.DatagramReceivedFcn='';
-        flushinput(UT_GUI.udp_handle);
-        fclose(UT_GUI.udp_handle);
-        clear UT_GUI.udp_handle;
+        if(~UT_GUI.mode&&~UT_GUI.formal_mode)
+            UT_GUI.udp_handle.DatagramReceivedFcn='';
+            flushinput(UT_GUI.udp_handle);
+            fclose(UT_GUI.udp_handle);
+            clear UT_GUI.udp_handle;
+        end
         stop_display_routine;
         set(UT_GUI.activated_node_pos,'Visible','off');
         set(UT_GUI.relaxed_node_pos,'Visible','off');
         set(UT_GUI.excited_node_pos,'Visible','off');
-        set(UT_GUI.view_history_handle,'Enable',button_states.view_history);
-        set(UT_GUI.file_menu_new_option,'Enable',button_states.new_option);
-        set(UT_GUI.file_menu_load_option,'Enable',button_states.load_option);
-        set(UT_GUI.file_menu_save_option,'Enable',button_states.save_option);
-        set(UT_GUI.edit_menu,'Enable',button_states.edit_menu);
-        set(UT_GUI.play_mode,'Enable',button_states.mode_menu);
-        set(UT_GUI.load_trigger_table_handle,'Enable',button_states.upload_trigger_table);
-        set(UT_GUI.pause_button_handle,'Enable','off');
+%         set(UT_GUI.view_history_handle,'Enable',button_states.view_history);
+%         set(UT_GUI.new_file_handle,'Enable',button_states.new_option);
+%         set(UT_GUI.load_file_handle,'Enable',button_states.load_option);
+%         set(UT_GUI.save_file_handle,'Enable',button_states.save_option);
+%         set(UT_GUI.edit_menu,'Enable',button_states.edit_menu);
+%         set(UT_GUI.play_mode,'Enable',button_states.mode_menu);
+%         set(UT_GUI.load_trigger_table_handle,'Enable',button_states.upload_trigger_table);
+%         set(UT_GUI.pause_button_handle,'Enable','off');
         UT_GUI.pause=0;
-        set(UT_GUI.node_table_handle,'Enable','on');
-        set(UT_GUI.path_table_handle,'Enable','on');
-        set(UT_GUI.trigger_table_handle,'Enable','on');
-        set(UT_GUI.pace_nodes_handle,'Enable','off');
+%         set(UT_GUI.node_table_handle,'Enable','on');
+%         set(UT_GUI.path_table_handle,'Enable','on');
+%         set(UT_GUI.trigger_table_handle,'Enable','on');
+%         set(UT_GUI.pace_button,'Enable','off');
         set(UT_GUI.heart_axes_handle,'ButtonDownFcn',@button_press);
         set(hObject,'String','Play');
     end
 end
 
-function setup_display_routine
+function setup_display_routine(start_delay,no_of_executions,function_name)
     global UT_GUI
-    UT_GUI.periodic_function_handle=timer('StartDelay',0,'Period',0.001,'TasksToExecute',9999999,'ExecutionMode','fixedDelay','BusyMode','drop');%Period should be 0.001
-    UT_GUI.periodic_function_handle.TimerFcn=@plot_refresher;
+    UT_GUI.periodic_function_handle=timer('StartDelay',start_delay,'Period',0.001,'TasksToExecute',no_of_executions,'ExecutionMode','fixedDelay','BusyMode','drop');%Period should be 0.001
+    UT_GUI.periodic_function_handle.TimerFcn=function_name;
 end
+
 
 function stop_display_routine
     global UT_GUI
@@ -490,6 +666,9 @@ end
 function plot_refresher(~,~)
     global UT_GUI change signals_list no_of_nodes
     persistent option temp_nodes_states temp_node_activation_status temp_path_states temp_current_time
+    if(UT_GUI.formal_mode&&~UT_GUI.mode)
+        formal_heart_model(1);
+    end
     if(~isempty(UT_GUI.current_nodes_states))
         temp_nodes_states=UT_GUI.current_nodes_states(1,:);
         temp_node_activation_status=UT_GUI.current_node_activation_status(1,:);
@@ -511,7 +690,7 @@ function plot_refresher(~,~)
             pause(0.000001);
             option=0;
         end
-        colorcodes='bgrc';
+        colorcodes='bgrcw';
         UT_GUI.relaxed_nodes_position=UT_GUI.nodes_position(temp_nodes_states==1,:);
         UT_GUI.excited_nodes_position=UT_GUI.nodes_position(temp_nodes_states==2,:);
         UT_GUI.activated_nodes_position=UT_GUI.nodes_position(temp_node_activation_status==1,:);
@@ -521,6 +700,14 @@ function plot_refresher(~,~)
         for i=1:UT_GUI.px
             set(UT_GUI.paths_handle(i),'Color',colorcodes(temp_path_states(i)));
         end
+    end
+    if(UT_GUI.mode)
+        if((temp_current_time>=UT_GUI.time_stamp_history(end))||(UT_GUI.time_stamp_history(1)>=UT_GUI.time_stamp_history(end)))
+            disp('ending routine');
+            run_model(UT_GUI.play_or_stop_button,0);
+        end
+        set(UT_GUI.position_slider,'Value',temp_current_time);
+        UT_GUI.start_point=find(temp_current_time==UT_GUI.time_stamp_history);
     end
 end
 
@@ -611,7 +798,8 @@ function play_or_stop(hObject,~)
 end
 %under construction
 
-function gather_data
+function gather_data(fill)
+    global UT_GUI
     waitbar_handle=waitbar(0,'Gathering Data...');
     UT_GUI.udp_handle = udp('192.168.90.90', 4950, 'LocalPort', 4950);
     set(UT_GUI.udp_handle,'DatagramTerminateMode','off');
@@ -620,10 +808,12 @@ function gather_data
     pause(1);
     fprintf(UT_GUI.udp_handle,'l');
     pause(1);
-    flushinput(UT_GUI.udp_handle);
+    while(UT_GUI.udp_handle.BytesAvailable)
+        fscanf(UT_GUI.udp_handle);
+    end
     fprintf(UT_GUI.udp_handle,'ok');
     data=fscanf(UT_GUI.udp_handle);
-    Log_plot_helper2(0,data,UT_GUI.nx,UT_GUI.px);
+    Log_plot_helper2(0,data,UT_GUI.nx,UT_GUI.px,fill);
     loop_count=1;
     while(1)
       fprintf(UT_GUI.udp_handle,'ok');%send acknowledgement for every datagram received, without this, heart won't continue sending data
@@ -631,13 +821,13 @@ function gather_data
       if(~isempty(find(data=='e',1)))
           break;
       end
-      Log_plot_helper2(1,data,UT_GUI.nx,UT_GUI.px);
+      Log_plot_helper2(1,data,UT_GUI.nx,UT_GUI.px,fill);
       waitbar(loop_count/1000,waitbar_handle);
       loop_count=loop_count+1;
     end
     fclose(UT_GUI.udp_handle);
     clear UT_GUI.udp_handle;
-    close(wait_bar);
+    close(waitbar_handle);
 end
 
 
@@ -657,7 +847,7 @@ function display_log(hObject,~)
         UT_GUI.logging_in_progress=0;
         return;
     end
-    gather_data;
+    gather_data(1);
     duration=size(UT_GUI.node_activation_status_history,1);
     Heart_log.figure_handle=figure('Units', 'normalized'...
         ,'Position', [0 0 1 1]...
@@ -711,7 +901,7 @@ function display_log(hObject,~)
     set(Heart_log.axes_handle,'YTickLabel',[]);
     set(Heart_log.axes_handle,'box','off');
     ylim([0 1.5*UT_GUI.nx]);
-    set(hObject,'String','Plot Heart Log');
+    %set(hObject,'String','Plot Heart Log');
     UT_GUI.logging_in_progress=0;
 end
 
