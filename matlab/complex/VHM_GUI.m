@@ -16,7 +16,7 @@ function err_code=VHM_GUI(varargin)
         UT_GUI.main_gui_handle=figure('Units', 'normalized'...
             ,'Position', [0 0 1 1]...
             ,'Resize','on'...
-            ,'Name','Test Sample'...
+            ,'Name','Complex Model GUI'...
             ,'NumberTitle','Off');   
         set(UT_GUI.main_gui_handle,'MenuBar','none');
         set(UT_GUI.main_gui_handle,'ToolBar','none');
@@ -100,19 +100,19 @@ function err_code=VHM_GUI(varargin)
             ,'Position',[0.005 0.5025 0.4925 0.4925]...
             ,'Data',UT_GUI.node_table...
             ,'RowName',[]...
-            ,'ColumnFormat',{'numeric','numeric','numeric','numeric','numeric','numeric','numeric'}...
+            ,'ColumnFormat',{'numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric'}...
             ,'ColumnWidth','auto'...
-            ,'ColumnEditable',[true true true true true true true]...
-            ,'ColumnName',{'Node State','Current ERP','ERP','Current Rest','Rest','Node activation status','path status'}...
-            ,'TooltipString','Node Table');
+            ,'ColumnEditable',[true true true true true true true true true true true true]...
+            ,'ColumnName',{'Node State','TERP_current','TERP_default','TRRP_current','TRRP_default','Trest_current','Trest_default','ERP_min','ERP_max','Node activation status','Path activation status','AV Node'}...
+            ,'TooltipString','Node Table');%,'CellEditCallback',@update_node_table);
         UT_GUI.path_table_handle = uitable('Parent',UT_GUI.panel3_handle,'Units','normalized'...
             ,'Position',[0.5025 0.5025 0.4925 0.4925]...
             ,'Data',UT_GUI.path_table...
             ,'RowName',[]...
-            ,'ColumnFormat',{'numeric','numeric','numeric','numeric','numeric','numeric','numeric'}...
+            ,'ColumnFormat',{'numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric'}...
             ,'ColumnWidth','auto'...
-            ,'ColumnEditable',[true true true true true true true true]...
-            ,'ColumnName',{'Path State','Source Node','Destination Node','current FC','Default FC','Current BC','Default BC'}...
+            ,'ColumnEditable',[true true true true true true true true true]...
+            ,'ColumnName',{'Path State','Source Node','Destination Node','current FC','Default FC','Current BC','Default BC','Reset Values'}...
             ,'TooltipString','Path Table');
         UT_GUI.trigger_table_handle = uitable('Parent',UT_GUI.panel3_handle,'Units','normalized'...
             ,'Position',[0.005 0.005 0.99 0.4925]...
@@ -168,6 +168,7 @@ function err_code=VHM_GUI(varargin)
             UT_GUI.delete_path_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\delete_path.png'),'TooltipString','Remove Path','ClickedCallback',@remove_path);
             UT_GUI.model_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\heart_model.png'),'TooltipString','Hardware Heart Mode');
             UT_GUI.load_trigger_table_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\upload.png'),'TooltipString','Upload Trigger Table','ClickedCallback',@upload_trigger_table);
+            UT_GUI.pace_panel_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\settings.png'),'TooltipString','Pace Settings','ClickedCallback',@show_pace_panel);
         end
         UT_GUI.play_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\clock.png'),'TooltipString','Current Mode','ClickedCallback',@switch_modes,'Tag','current');
         UT_GUI.pacemaker_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\no_pacemaker.png'),'TooltipString','Pacemaker Off','ClickedCallback',@switch_modes,'Tag','poff');
@@ -183,6 +184,16 @@ function err_code=VHM_GUI(varargin)
         set(UT_GUI.heart_axes_handle,'ButtonDownFcn',@button_press);
         set(UT_GUI.main_gui_handle,'WindowButtonMotionFcn', @hinter);
         UT_GUI.hint_text_handle = text('Color', 'white', 'VerticalAlign', 'Bottom');
+    end
+end
+
+function update_node_table(hObject,eventdata)
+global UT_GUI
+    if(eventdata.Indices(2)==12)
+        UT_GUI.node_table(eventdata.Indices(1),eventdata.Indices(2))=double(eventdata.EditData);
+        
+    else
+        UT_GUI.node_table(eventdata.Indices)=eventdata.NewData;
     end
 end
 
@@ -654,8 +665,8 @@ function update_GUI(node_table,path_table)
         prev_path_states=current_path_states;
         UT_GUI.current_path_states=prev_path_states;
         UT_GUI.current_time=time_stamp;
+        plot_refresher;
     end
-    plot_refresher;
     time_stamp=time_stamp+1;
 end
 
@@ -1060,14 +1071,14 @@ function response=update_tables
     error1=0;
     for i=1:UT_GUI.nx,
         skiplist=[];
-        for j=1:7,
+        for j=1:11,
             if(UT_GUI.node_table(i,j)<0)
                 error1=1;
                 skiplist=[skiplist,j];
                 display_string1=[display_string1,'(',num2str(i),',',num2str(j),')::'];
             end
         end
-        if(UT_GUI.node_table(i,1)>2)
+        if(UT_GUI.node_table(i,1)>3)
             error1=1;
             if(isempty(find(skiplist==1)))
                 display_string1=[display_string1,'(',num2str(i),',1)::'];
@@ -1085,16 +1096,41 @@ function response=update_tables
                 display_string1=[display_string1,'(',num2str(i),',4)::'];
             end
         end
-        if(UT_GUI.node_table(i,6)>1)
+        if(UT_GUI.node_table(i,7)<UT_GUI.node_table(i,6))
             error1=1;
             if(isempty(find(skiplist==6)))
                 display_string1=[display_string1,'(',num2str(i),',6)::'];
             end
         end
-        if(UT_GUI.node_table(i,7)>1)
+        if(UT_GUI.node_table(i,12)>1)
             error1=1;
-            if(isempty(find(skiplist==7)))
-                display_string1=[display_string1,'(',num2str(i),',7)::'];
+            if(isempty(find(skiplist==12)))
+                display_string1=[display_string1,'(',num2str(i),',12)::'];
+            end
+        else
+            if(UT_GUI.node_table(i,12)==0 && UT_GUI.node_table(i,9)<UT_GUI.node_table(i,8))
+                error1=1;
+                if(isempty(find(skiplist==8)))
+                    display_string1=[display_string1,'(',num2str(i),',8)::'];
+                end
+            end
+            if(UT_GUI.node_table(i,12)==1 && UT_GUI.node_table(i,9)>UT_GUI.node_table(i,8))
+                error1=1;
+                if(isempty(find(skiplist==8)))
+                    display_string1=[display_string1,'(',num2str(i),',8)::'];
+                end
+            end
+        end
+        if(UT_GUI.node_table(i,10)>1)
+            error1=1;
+            if(isempty(find(skiplist==10)))
+                display_string1=[display_string1,'(',num2str(i),',10)::'];
+            end
+        end
+        if(UT_GUI.node_table(i,11)>1)
+            error1=1;
+            if(isempty(find(skiplist==11)))
+                display_string1=[display_string1,'(',num2str(i),',11)::'];
             end
         end
     end
@@ -1102,7 +1138,7 @@ function response=update_tables
     display_string2='Path table Entries:';
     for i=1:UT_GUI.px,
         skiplist=[];
-        for j=1:7,
+        for j=1:8,
             if(UT_GUI.path_table(i,j)<=0)
                 error2=1;
                 skiplist=[skiplist,j];
@@ -1155,11 +1191,11 @@ function response=update_tables
     %the number of rows and columns in the node table is converted to string to
     %be sent to the board
     nx_string=num2str(UT_GUI.nx);
-    ny_string=num2str(7);
+    ny_string=num2str(12);
     %commas seperate every number sent to the board
     transmit=strcat(nx_string,',',ny_string);
     for i=1:UT_GUI.nx,
-        for j=1:7,
+        for j=1:12,
             transmit=strcat(transmit,',',num2str(UT_GUI.node_table(i,j)));
         end
     end
@@ -1168,10 +1204,10 @@ function response=update_tables
     %number of rows and columns of the path table converted to string to be
     %appended to the data sent to the board
     px_string=num2str(UT_GUI.px);
-    py_string=num2str(7);
+    py_string=num2str(8);
     transmit=strcat(transmit,px_string,',',py_string);
     for i=1:UT_GUI.px,
-        for j=1:7,
+        for j=1:8,
             if((j==2)||(j==3))
                 %*******IMPORTANT*******%
                 %The table used for matlab considers the first node to be
@@ -1215,7 +1251,7 @@ end
 function response=config_check
 global UT_GUI
     response=0;
-    if((size(UT_GUI.node_table,1)<1)||(size(UT_GUI.node_table,2)~=7)||(size(UT_GUI.path_table,1)<1)||(size(UT_GUI.path_table,2)~=7)...
+    if((size(UT_GUI.node_table,1)<1)||(size(UT_GUI.node_table,2)~=12)||(size(UT_GUI.path_table,1)<1)||(size(UT_GUI.path_table,2)~=8)...
             ||(UT_GUI.nx<1)||(UT_GUI.px<1)||(size(UT_GUI.node_table,1)~=UT_GUI.nx)||(size(UT_GUI.path_table,1)~=UT_GUI.px))
         errordlg('Tables not loaded correctly','Check Tables','modal');
     else
@@ -1241,7 +1277,7 @@ end
 function button_press(hObject,~)
 global UT_GUI
 persistent press_count start_point end_point source_node dest_node
-    tolerance=7;
+    tolerance=10;
     pt=round(get(hObject,'CurrentPoint'));
     if(UT_GUI.add_path_mode==0)
         press_count=0;
@@ -1285,10 +1321,10 @@ function hinter(hObject,eventdata)
         if abs(mouseX - UT_GUI.nodes_position(ind,1)) < tolerance && abs(mouseY - UT_GUI.nodes_position(ind,2)) < tolerance
             UT_GUI.node_in_focus=ind;
             set(UT_GUI.hint_text_handle, 'String', ['node ' num2str(ind)]);
-            set(UT_GUI.hint_text_handle, 'Position', [UT_GUI.nodes_position(ind,1) + 2*(rand()-0.5)*tolerance, UT_GUI.nodes_position(ind,2) + 2*(rand()-0.5)*tolerance]);
+            set(UT_GUI.hint_text_handle, 'Position', [UT_GUI.nodes_position(ind,1) + 2*(rand()-0.5)*tolerance, UT_GUI.nodes_position(ind,2) + 2*(rand()-0.5)*tolerance])
         else
             UT_GUI.node_in_focus=0;
-            set(UT_GUI.hint_text_handle, 'String', '');
+            set(UT_GUI.hint_text_handle, 'String', '')
         end
     end
 end
@@ -1311,7 +1347,7 @@ end
 function set_node_configuration(position,node_count)
 global current_node_config
     current_node_config.figure_handle=figure('Units', 'Pixels'...
-    ,'Position', [position(1) position(2) 370 100]...
+    ,'Position', [position(1) position(2) 700 100]...
     ,'Resize','off'...
     ,'Name',strcat('Node ',num2str(node_count),' Settings')...
     ,'NumberTitle','Off','CloseRequestFcn',@remove_last_node,'MenuBar','none');
@@ -1321,20 +1357,32 @@ global current_node_config
     current_node_config.current_erp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[70,50,70,20],'BackgroundColor','white');
     uicontrol('Style','text','String','Default TERP','Position',[145,70,70,20]);
     current_node_config.erp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[145,50,70,20],'BackgroundColor','white');
-    uicontrol('Style','text','String','Current Trest','Position',[220,70,70,20]);
-    current_node_config.current_rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[220,50,70,20],'BackgroundColor','white');
-    uicontrol('Style','text','String','Default Trest','Position',[295,70,70,20]);
-    current_node_config.rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[295,50,70,20],'BackgroundColor','white');
-    uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[105,10,80,30],'String','OK','Callback',@read_node_data);
-    uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[190,10,80,30],'String','Cancel','Callback',@remove_last_node);
+    uicontrol('Style','text','String','Current TRRP','Position',[220,70,70,20]);
+    current_node_config.current_rrp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[220,50,70,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','Default TRRP','Position',[295,70,70,20]);
+    current_node_config.rrp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[295,50,70,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','Current Trest','Position',[370,70,70,20]);
+    current_node_config.current_rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[370,50,70,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','Default Trest','Position',[445,70,70,20]);
+    current_node_config.rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[445,50,70,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','ERP_min','Position',[520,70,50,20]);
+    current_node_config.erp_min=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[520,50,50,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','ERP_max','Position',[575,70,50,20]);
+    current_node_config.erp_max=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[575,50,50,20],'BackgroundColor','white');
+    uicontrol('Style','text','String','Node Type','Position',[630,70,70,20]);
+    current_node_config.node_type=uicontrol('Parent',current_node_config.figure_handle,'Style','checkbox','String','AV Node','Position',[630,50,70,20],'BackgroundColor','white');
+    uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[265,10,80,30],'String','OK','Callback',@read_node_data);
+    uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[350,10,80,30],'String','Cancel','Callback',@remove_last_node);
 end
 
 function read_node_data(~,~)
 global current_node_config UT_GUI
     temp=[str2double(get(current_node_config.node_number,'String')) str2double(get(current_node_config.current_erp,'String')) str2double(get(current_node_config.erp,'String'))...
-        str2double(get(current_node_config.current_rest,'String')) str2double(get(current_node_config.rest,'String')) 0 0];
+        str2double(get(current_node_config.current_rrp,'String')) str2double(get(current_node_config.rrp,'String')) str2double(get(current_node_config.current_rest,'String'))...
+        str2double(get(current_node_config.rest,'String')) str2double(get(current_node_config.erp_min,'String')) str2double(get(current_node_config.erp_max,'String'))...
+        0 0 get(current_node_config.node_type,'Value')];
     %set(UT_GUI.no_of_nodes_handle,'String',num2str(size(UT_GUI.node_table,1)));
-    if(size(temp,2)~=7)
+    if(size(temp,2)~=12)
         errordlg('Invalid Entries for node!!!','Check values','modal');
         return;
     end
@@ -1345,22 +1393,25 @@ global current_node_config UT_GUI
     UT_GUI.trigger_table=[get(UT_GUI.trigger_table_handle,'Data');zeros(1,max(1,size(get(UT_GUI.trigger_table_handle,'Data'),2)))];
     set(UT_GUI.trigger_table_handle,'Data',UT_GUI.trigger_table);
     update_t_table_on_GUI(0,UT_GUI.trigger_table,UT_GUI.trigger_table);
+%     UT_GUI.trigger_table=[get(UT_GUI.trigger_table_handle,'Data');zeros(1,max(1,size(get(UT_GUI.trigger_table_handle,'Data'),2)))];
+%     set(UT_GUI.trigger_table_handle,'Data',UT_GUI.trigger_table);
+%     %update_tooltip;
 end
 
-function remove_last_node(hObject,~)
-global UT_GUI
+function remove_last_node(~,~)
+global current_node_config UT_GUI
     UT_GUI.nodes_position(end,:)=[];
     try
         set(UT_GUI.node_pos,'XData',UT_GUI.nodes_position(:,1),'YData',UT_GUI.nodes_position(:,2));
     catch
     end
-    delete(get(hObject,'Parent'));
+    delete(current_node_config.figure_handle);
 end
 
 function set_path_configuration(source_node,dest_node,position,path_count)
 global current_path_config
     current_path_config.figure_handle=figure('Units', 'Pixels'...
-    ,'Position', [position(1) position(2) 550 100]...
+    ,'Position', [position(1) position(2) 620 100]...
     ,'Resize','off'...
     ,'Name','Path Settings'...
     ,'NumberTitle','Off','CloseRequestFcn',@remove_last_path,'MenuBar','none');
@@ -1378,30 +1429,33 @@ global current_path_config
     current_path_config.current_bc=uicontrol('Parent',current_path_config.figure_handle,'Style','edit','String','999','Position',[395,50,70,20],'BackgroundColor','white');
     uicontrol('Style','text','String','Def. Bwd Dur.','Position',[470,70,70,20]);  
     current_path_config.def_bc=uicontrol('Parent',current_path_config.figure_handle,'Style','edit','String','999','Position',[470,50,70,20],'BackgroundColor','white');
-    uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[120,20,80,30],'String','OK','Callback',@read_path_data);
-    uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[205,20,80,30],'String','Cancel','Callback',@remove_last_path);
+    uicontrol('Style','text','String','All Default','Position',[545,70,70,20]);  
+    current_path_config.all_def=uicontrol('Parent',current_path_config.figure_handle,'Style','edit','String','999','Position',[545,50,70,20],'BackgroundColor','white');
+    uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[225,10,80,30],'String','OK','Callback',@read_path_data);
+    uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[310,10,80,30],'String','Cancel','Callback',@remove_last_path);
 end
 
 function read_path_data(~,~)
 global current_path_config UT_GUI
     temp=[str2double(get(current_path_config.path_number,'String')) str2double(get(current_path_config.source_node,'String')) str2double(get(current_path_config.dest_node,'String'))...
-        str2double(get(current_path_config.current_fc,'String')) str2double(get(current_path_config.def_fc,'String')) str2double(get(current_path_config.current_bc,'String')) str2double(get(current_path_config.def_bc,'String'))];
+        str2double(get(current_path_config.current_fc,'String')) str2double(get(current_path_config.def_fc,'String')) str2double(get(current_path_config.current_bc,'String')) str2double(get(current_path_config.def_bc,'String'))...
+        str2double(get(current_path_config.all_def,'String'))];
     %set(UT_GUI.no_of_paths_handle,'String',num2str(size(UT_GUI.path_table,1)));
-    if(size(temp,2)~=7)
+    if(size(temp,2)~=8)
         errordlg('Invalid Entries for Path!!!','Check values','modal');
         return;
     end
     UT_GUI.path_table(UT_GUI.px+1,:)=temp;
     UT_GUI.px=UT_GUI.px+1;
     set(UT_GUI.path_table_handle,'Data',UT_GUI.path_table);
-    close(current_path_config.figure_handle);
+    delete(current_path_config.figure_handle);
 end
 
 function remove_last_path(hObject,~)
-global UT_GUI
+global UT_GUI current_path_config
     delete(UT_GUI.paths_handle(end));
     UT_GUI.paths_handle(end)=[];
-    close(get(hObject,'Parent'));
+    delete(current_path_config.figure_handle);
 end
 
 function remove_node(~,~)
@@ -1439,7 +1493,6 @@ end
 function close_gui(hObject,~)
 global UT_GUI
     try
-        fclose(UT_GUI.udp_handle);
         delete(hObject);
         clear all;
         close all;
