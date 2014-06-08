@@ -13,11 +13,15 @@ function err_code=VHM_GUI(varargin)
         UT_GUI.logging_in_progress=0;
         UT_GUI.update_in_progress=0;
         UT_GUI.screen_size=get(0,'ScreenSize');
+        get_model_info;
         UT_GUI.main_gui_handle=figure('Units', 'normalized'...
             ,'Position', [0 0 1 1]...
             ,'Resize','on'...
-            ,'Name','Test Sample'...
+            ,'Name','Simple Model GUI'...
             ,'NumberTitle','Off');   
+        if(UT_GUI.heart_model)
+            set(UT_GUI.main_gui_handle,'Name','Complex Model GUI');
+        end
         set(UT_GUI.main_gui_handle,'MenuBar','none');
         set(UT_GUI.main_gui_handle,'ToolBar','none');
         UT_GUI.toolbar_handle=uitoolbar(UT_GUI.main_gui_handle);
@@ -26,7 +30,9 @@ function err_code=VHM_GUI(varargin)
         UT_GUI.mode=0;
         UT_GUI.formal_mode=nargin;
         UT_GUI.nx=0;
+        UT_GUI.ny=0;
         UT_GUI.px=0;
+        UT_GUI.py=0;
         UT_GUI.node_table=[];
         UT_GUI.path_table=[];
         UT_GUI.trigger_table=[];
@@ -96,23 +102,38 @@ function err_code=VHM_GUI(varargin)
             ,'BorderType','etchedout'...
             ,'BorderWidth',1,...
             'ShadowColor',[0 0 0]); 
+        if(UT_GUI.heart_model)
+            node_table_column_format={'numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric'};
+            node_table_column_editable_array=[true true true true true true true true true true true true];
+            node_table_column_name={'Node State','TERP_current','TERP_default','TRRP_current','TRRP_default','Trest_current','Trest_default','ERP_min','ERP_max','Node activation status','Path activation status','AV Node'};
+            path_table_column_format={'numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric'};
+            path_table_column_editable_array=[true true true true true true true true];
+            path_table_column_name={'Path State','Source Node','Destination Node','current FC','Default FC','Current BC','Default BC','Reset Values'};
+        else
+            node_table_column_format={'numeric','numeric','numeric','numeric','numeric','numeric','numeric'};
+            node_table_column_editable_array=[true true true true true true true];
+            node_table_column_name={'Node State','TERP_current','TERP_default','Trest_current','Trest_default','Node activation status','Path activation status'};
+            path_table_column_format={'numeric','numeric','numeric','numeric','numeric','numeric','numeric'};
+            path_table_column_editable_array=[true true true true true true true];
+            path_table_column_name={'Path State','Source Node','Destination Node','current FC','Default FC','Current BC','Default BC'};
+        end
         UT_GUI.node_table_handle = uitable('Parent',UT_GUI.panel3_handle,'Units','normalized'...
             ,'Position',[0.005 0.5025 0.4925 0.4925]...
             ,'Data',UT_GUI.node_table...
             ,'RowName',[]...
-            ,'ColumnFormat',{'numeric','numeric','numeric','numeric','numeric','numeric','numeric'}...
+            ,'ColumnFormat',node_table_column_format...
             ,'ColumnWidth','auto'...
-            ,'ColumnEditable',[true true true true true true true]...
-            ,'ColumnName',{'Node State','Current ERP','ERP','Current Rest','Rest','Node activation status','path status'}...
+            ,'ColumnEditable',node_table_column_editable_array...
+            ,'ColumnName',node_table_column_name...
             ,'TooltipString','Node Table');
         UT_GUI.path_table_handle = uitable('Parent',UT_GUI.panel3_handle,'Units','normalized'...
             ,'Position',[0.5025 0.5025 0.4925 0.4925]...
             ,'Data',UT_GUI.path_table...
             ,'RowName',[]...
-            ,'ColumnFormat',{'numeric','numeric','numeric','numeric','numeric','numeric','numeric'}...
+            ,'ColumnFormat',path_table_column_format...
             ,'ColumnWidth','auto'...
-            ,'ColumnEditable',[true true true true true true true true]...
-            ,'ColumnName',{'Path State','Source Node','Destination Node','current FC','Default FC','Current BC','Default BC'}...
+            ,'ColumnEditable',path_table_column_editable_array...
+            ,'ColumnName',path_table_column_name...
             ,'TooltipString','Path Table');
         UT_GUI.trigger_table_handle = uitable('Parent',UT_GUI.panel3_handle,'Units','normalized'...
             ,'Position',[0.005 0.005 0.99 0.4925]...
@@ -145,7 +166,9 @@ function err_code=VHM_GUI(varargin)
             catch
             end
             UT_GUI.nx=size(UT_GUI.node_table,1);
+            UT_GUI.ny=size(UT_GUI.node_table,2);
             UT_GUI.px=size(UT_GUI.path_table,1);
+            UT_GUI.py=size(UT_GUI.path_table,2);
             set(UT_GUI.node_table_handle,'Data',UT_GUI.node_table);
             set(UT_GUI.path_table_handle,'Data',UT_GUI.path_table);
             UT_GUI.nodes_position=node_pos;
@@ -182,7 +205,21 @@ function err_code=VHM_GUI(varargin)
         set(UT_GUI.im,'HitTest','off');
         set(UT_GUI.heart_axes_handle,'ButtonDownFcn',@button_press);
         set(UT_GUI.main_gui_handle,'WindowButtonMotionFcn', @hinter);
-        UT_GUI.hint_text_handle = text('Color', 'white', 'VerticalAlign', 'Bottom');
+        UT_GUI.node_hint_text_handle = text('Color', 'white', 'VerticalAlign', 'Bottom');
+        UT_GUI.path_hint_text_handle = text('Color', 'white', 'VerticalAlign', 'Bottom');
+    end
+end
+
+function get_model_info
+global UT_GUI
+option=questdlg('Choose the type of Heart model',...
+        'Model Type',...
+        'Simple Model','Complex Model','Simple Model');
+    switch option
+        case 'Simple Model'
+            UT_GUI.heart_model=0;
+        case 'Complex Model'
+            UT_GUI.heart_model=1;
     end
 end
 
@@ -454,7 +491,7 @@ function emergency_pacer(~,~)
     disp(UT_GUI.node_in_focus)
     if(UT_GUI.node_in_focus)        
         fprintf(UT_GUI.udp_handle,['e' num2str(UT_GUI.node_in_focus-1)]); 
-        set(UT_GUI.hint_text_handle,'String','Paced');
+        set(UT_GUI.node_hint_text_handle,'String','Paced');
     end
 end
 
@@ -888,7 +925,7 @@ function upload_trigger_table(~,~)
     UT_GUI.trigger_table=get(UT_GUI.trigger_table_handle,'Data');
     max_paces=max(UT_GUI.trigger_table(:,1));
     nx_string=num2str(UT_GUI.nx);
-    ny_string=num2str(7);
+    ny_string=num2str(UT_GUI.ny);
     transmit=strcat(nx_string,',',ny_string);
     edited_trigger_table=zeros(UT_GUI.nx,21);
     for i=1:UT_GUI.nx,
@@ -1018,6 +1055,10 @@ function load_model(~,~)
     global UT_GUI
     [fname,path] = uigetfile('*.mat', 'Load VHM Model');
     load([path fname]);
+    if((UT_GUI.heart_model && (size(node_table,2)~=12 || size(path_table,2)~=8))||(~UT_GUI.heart_model && (size(node_table,2)~=7 || size(path_table,2)~=7)))
+        errordlg('Please load the correct heart model','Wrong tables structure','modal');
+        return;
+    end
     UT_GUI.node_table=node_table;
     UT_GUI.path_table=path_table;
     try
@@ -1025,7 +1066,9 @@ function load_model(~,~)
     catch
     end
     UT_GUI.nx=size(UT_GUI.node_table,1);
+    UT_GUI.ny=size(UT_GUI.node_table,2);
     UT_GUI.px=size(UT_GUI.path_table,1);
+    UT_GUI.py=size(UT_GUI.path_table,2);
     set(UT_GUI.node_table_handle,'Data',UT_GUI.node_table);
     set(UT_GUI.path_table_handle,'Data',UT_GUI.path_table);
     UT_GUI.nodes_position=node_pos;
@@ -1060,41 +1103,63 @@ function response=update_tables
     error1=0;
     for i=1:UT_GUI.nx,
         skiplist=[];
-        for j=1:7,
+        for j=1:UT_GUI.ny,
             if(UT_GUI.node_table(i,j)<0)
                 error1=1;
                 skiplist=[skiplist,j];
                 display_string1=[display_string1,'(',num2str(i),',',num2str(j),')::'];
             end
         end
-        if(UT_GUI.node_table(i,1)>2)
+        if(UT_GUI.node_table(i,1)>(2+UT_GUI.heart_model))
             error1=1;
             if(isempty(find(skiplist==1)))
                 display_string1=[display_string1,'(',num2str(i),',1)::'];
             end
         end
-        if(UT_GUI.node_table(i,3)<UT_GUI.node_table(i,2))
-            error1=1;
-            if(isempty(find(skiplist==2)))
-                display_string1=[display_string1,'(',num2str(i),',2)::'];
+        if(UT_GUI.heart_model)
+            if(UT_GUI.node_table(i,12)>1)
+                error1=1;
+                if(isempty(find(skiplist==12)))
+                    display_string1=[display_string1,'(',num2str(i),',12)::'];
+                end
+            else
+                if(UT_GUI.node_table(i,12)==0 && UT_GUI.node_table(i,9)<UT_GUI.node_table(i,8))
+                    error1=1;
+                    if(isempty(find(skiplist==8)))
+                        display_string1=[display_string1,'(',num2str(i),',8)::'];
+                    end
+                end
+                if(UT_GUI.node_table(i,12)==1 && UT_GUI.node_table(i,9)>UT_GUI.node_table(i,8))
+                    error1=1;
+                    if(isempty(find(skiplist==8)))
+                        display_string1=[display_string1,'(',num2str(i),',8)::'];
+                    end
+                end
             end
-        end
-        if(UT_GUI.node_table(i,5)<UT_GUI.node_table(i,4))
-            error1=1;
-            if(isempty(find(skiplist==4)))
-                display_string1=[display_string1,'(',num2str(i),',4)::'];
+            if(UT_GUI.node_table(i,10)>1)
+                error1=1;
+                if(isempty(find(skiplist==10)))
+                    display_string1=[display_string1,'(',num2str(i),',10)::'];
+                end
             end
-        end
-        if(UT_GUI.node_table(i,6)>1)
-            error1=1;
-            if(isempty(find(skiplist==6)))
-                display_string1=[display_string1,'(',num2str(i),',6)::'];
+            if(UT_GUI.node_table(i,11)>1)
+                error1=1;
+                if(isempty(find(skiplist==11)))
+                    display_string1=[display_string1,'(',num2str(i),',11)::'];
+                end
             end
-        end
-        if(UT_GUI.node_table(i,7)>1)
-            error1=1;
-            if(isempty(find(skiplist==7)))
-                display_string1=[display_string1,'(',num2str(i),',7)::'];
+        else
+            if(UT_GUI.node_table(i,6)>1)
+                error1=1;
+                if(isempty(find(skiplist==6)))
+                    display_string1=[display_string1,'(',num2str(i),',6)::'];
+                end
+            end
+            if(UT_GUI.node_table(i,7)>1)
+                error1=1;
+                if(isempty(find(skiplist==7)))
+                    display_string1=[display_string1,'(',num2str(i),',7)::'];
+                end
             end
         end
     end
@@ -1102,7 +1167,7 @@ function response=update_tables
     display_string2='Path table Entries:';
     for i=1:UT_GUI.px,
         skiplist=[];
-        for j=1:7,
+        for j=1:UT_GUI.py,
             if(UT_GUI.path_table(i,j)<=0)
                 error2=1;
                 skiplist=[skiplist,j];
@@ -1155,11 +1220,11 @@ function response=update_tables
     %the number of rows and columns in the node table is converted to string to
     %be sent to the board
     nx_string=num2str(UT_GUI.nx);
-    ny_string=num2str(7);
+    ny_string=num2str(UT_GUI.ny);
     %commas seperate every number sent to the board
     transmit=strcat(nx_string,',',ny_string);
     for i=1:UT_GUI.nx,
-        for j=1:7,
+        for j=1:UT_GUI.ny,
             transmit=strcat(transmit,',',num2str(UT_GUI.node_table(i,j)));
         end
     end
@@ -1168,10 +1233,10 @@ function response=update_tables
     %number of rows and columns of the path table converted to string to be
     %appended to the data sent to the board
     px_string=num2str(UT_GUI.px);
-    py_string=num2str(7);
+    py_string=num2str(UT_GUI.py);
     transmit=strcat(transmit,px_string,',',py_string);
     for i=1:UT_GUI.px,
-        for j=1:7,
+        for j=1:UT_GUI.py,
             if((j==2)||(j==3))
                 %*******IMPORTANT*******%
                 %The table used for matlab considers the first node to be
@@ -1215,8 +1280,8 @@ end
 function response=config_check
 global UT_GUI
     response=0;
-    if((size(UT_GUI.node_table,1)<1)||(size(UT_GUI.node_table,2)~=7)||(size(UT_GUI.path_table,1)<1)||(size(UT_GUI.path_table,2)~=7)...
-            ||(UT_GUI.nx<1)||(UT_GUI.px<1)||(size(UT_GUI.node_table,1)~=UT_GUI.nx)||(size(UT_GUI.path_table,1)~=UT_GUI.px))
+    if((size(UT_GUI.node_table,1)<1)||(size(UT_GUI.node_table,2)~=(UT_GUI.heart_model*12+(1-UT_GUI.heart_model)*7))||(size(UT_GUI.path_table,1)<1)||(size(UT_GUI.path_table,2)~=(UT_GUI.heart_model*8+(1-UT_GUI.heart_model)*7))...
+            ||(UT_GUI.nx<1)||(UT_GUI.px<1)||(UT_GUI.ny<1)||(UT_GUI.py<1)||(size(UT_GUI.node_table,1)~=UT_GUI.nx)||(size(UT_GUI.path_table,1)~=UT_GUI.px))
         errordlg('Tables not loaded correctly','Check Tables','modal');
     else
         response=1;
@@ -1284,11 +1349,22 @@ function hinter(hObject,eventdata)
         [val, ind] = min(abs(distancesToMouse));
         if abs(mouseX - UT_GUI.nodes_position(ind,1)) < tolerance && abs(mouseY - UT_GUI.nodes_position(ind,2)) < tolerance
             UT_GUI.node_in_focus=ind;
-            set(UT_GUI.hint_text_handle, 'String', ['node ' num2str(ind)]);
-            set(UT_GUI.hint_text_handle, 'Position', [UT_GUI.nodes_position(ind,1) + 2*(rand()-0.5)*tolerance, UT_GUI.nodes_position(ind,2) + 2*(rand()-0.5)*tolerance]);
+            set(UT_GUI.node_hint_text_handle, 'String', ['Node ' num2str(ind)]);
+            set(UT_GUI.node_hint_text_handle, 'Position', [UT_GUI.nodes_position(ind,1) + 2*(rand()-0.5)*tolerance, UT_GUI.nodes_position(ind,2) + 2*(rand()-0.5)*tolerance]);
         else
             UT_GUI.node_in_focus=0;
-            set(UT_GUI.hint_text_handle, 'String', '');
+            set(UT_GUI.node_hint_text_handle, 'String', '');
+        end
+        if(UT_GUI.px>0)
+            pathLengths=hypot(UT_GUI.nodes_position(UT_GUI.path_table(:,2),1)-UT_GUI.nodes_position(UT_GUI.path_table(:,3),1),UT_GUI.nodes_position(UT_GUI.path_table(:,2),2)-UT_GUI.nodes_position(UT_GUI.path_table(:,3),2));
+            pathtrace=[UT_GUI.nodes_position(UT_GUI.path_table(:,2),:);UT_GUI.nodes_position(UT_GUI.path_table(:,3),:)];
+            [val,ind]=min(abs(pathLengths-(hypot(UT_GUI.nodes_position(UT_GUI.path_table(:,2),1)-mouseX,UT_GUI.nodes_position(UT_GUI.path_table(:,2),2)-mouseY)+hypot(mouseX-UT_GUI.nodes_position(UT_GUI.path_table(:,3),1),mouseY-UT_GUI.nodes_position(UT_GUI.path_table(:,3),2)))));
+            if(val<1)
+                set(UT_GUI.path_hint_text_handle,'String',['Path ' num2str(ind)]);
+                set(UT_GUI.path_hint_text_handle,'Position',[mouseX+5,mouseY+5]);
+            else
+                set(UT_GUI.path_hint_text_handle,'String','');
+            end
         end
     end
 end
@@ -1309,9 +1385,9 @@ global UT_GUI
 end
 
 function set_node_configuration(position,node_count)
-global current_node_config
+global current_node_config UT_GUI
     current_node_config.figure_handle=figure('Units', 'Pixels'...
-    ,'Position', [position(1) position(2) 370 100]...
+    ,'Position', [position(1) position(2) 370*(1-UT_GUI.heart_model)+700*UT_GUI.heart_model 100]...
     ,'Resize','off'...
     ,'Name',strcat('Node ',num2str(node_count),' Settings')...
     ,'NumberTitle','Off','CloseRequestFcn',@remove_last_node,'MenuBar','none');
@@ -1321,20 +1397,45 @@ global current_node_config
     current_node_config.current_erp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[70,50,70,20],'BackgroundColor','white');
     uicontrol('Style','text','String','Default TERP','Position',[145,70,70,20]);
     current_node_config.erp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[145,50,70,20],'BackgroundColor','white');
-    uicontrol('Style','text','String','Current Trest','Position',[220,70,70,20]);
-    current_node_config.current_rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[220,50,70,20],'BackgroundColor','white');
-    uicontrol('Style','text','String','Default Trest','Position',[295,70,70,20]);
-    current_node_config.rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[295,50,70,20],'BackgroundColor','white');
-    uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[105,10,80,30],'String','OK','Callback',@read_node_data);
-    uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[190,10,80,30],'String','Cancel','Callback',@remove_last_node);
+    if(UT_GUI.heart_model)
+        uicontrol('Style','text','String','Current TRRP','Position',[220,70,70,20]);
+        current_node_config.current_rrp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[220,50,70,20],'BackgroundColor','white');
+        uicontrol('Style','text','String','Default TRRP','Position',[295,70,70,20]);
+        current_node_config.rrp=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[295,50,70,20],'BackgroundColor','white');
+        uicontrol('Style','text','String','Current Trest','Position',[370,70,70,20]);
+        current_node_config.current_rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[370,50,70,20],'BackgroundColor','white');
+        uicontrol('Style','text','String','Default Trest','Position',[445,70,70,20]);
+        current_node_config.rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[445,50,70,20],'BackgroundColor','white');
+        uicontrol('Style','text','String','ERP_min','Position',[520,70,50,20]);
+        current_node_config.erp_min=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[520,50,50,20],'BackgroundColor','white');
+        uicontrol('Style','text','String','ERP_max','Position',[575,70,50,20]);
+        current_node_config.erp_max=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[575,50,50,20],'BackgroundColor','white');
+        uicontrol('Style','text','String','Node Type','Position',[630,70,70,20]);
+        current_node_config.node_type=uicontrol('Parent',current_node_config.figure_handle,'Style','checkbox','String','AV Node','Position',[630,50,70,20],'BackgroundColor','white');
+        uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[265,10,80,30],'String','OK','Callback',@read_node_data);
+        uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[350,10,80,30],'String','Cancel','Callback',@remove_last_node);
+    else
+        uicontrol('Style','text','String','Current Trest','Position',[220,70,70,20]);
+        current_node_config.current_rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[220,50,70,20],'BackgroundColor','white');
+        uicontrol('Style','text','String','Default Trest','Position',[295,70,70,20]);
+        current_node_config.rest=uicontrol('Parent',current_node_config.figure_handle,'Style','edit','String','9999','Position',[295,50,70,20],'BackgroundColor','white');
+        uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[105,10,80,30],'String','OK','Callback',@read_node_data);
+        uicontrol('Parent',current_node_config.figure_handle,'Style','pushbutton','Position',[190,10,80,30],'String','Cancel','Callback',@remove_last_node);
+    end
 end
 
 function read_node_data(~,~)
 global current_node_config UT_GUI
-    temp=[str2double(get(current_node_config.node_number,'String')) str2double(get(current_node_config.current_erp,'String')) str2double(get(current_node_config.erp,'String'))...
-        str2double(get(current_node_config.current_rest,'String')) str2double(get(current_node_config.rest,'String')) 0 0];
-    %set(UT_GUI.no_of_nodes_handle,'String',num2str(size(UT_GUI.node_table,1)));
-    if(size(temp,2)~=7)
+    if UT_GUI.heart_model
+        temp=[str2double(get(current_node_config.node_number,'String')) str2double(get(current_node_config.current_erp,'String')) str2double(get(current_node_config.erp,'String'))...
+        str2double(get(current_node_config.current_rrp,'String')) str2double(get(current_node_config.rrp,'String')) str2double(get(current_node_config.current_rest,'String'))...
+        str2double(get(current_node_config.rest,'String')) str2double(get(current_node_config.erp_min,'String')) str2double(get(current_node_config.erp_max,'String'))...
+        0 0 get(current_node_config.node_type,'Value')];
+    else
+        temp=[str2double(get(current_node_config.node_number,'String')) str2double(get(current_node_config.current_erp,'String')) str2double(get(current_node_config.erp,'String'))...
+        str2double(get(current_node_config.current_rest,'String')) str2double(get(current_node_config.rest,'String')) 0 0]; 
+    end
+    if(size(temp,2)~=(12*UT_GUI.heart_model+(1-UT_GUI.heart_model)*7))
         errordlg('Invalid Entries for node!!!','Check values','modal');
         return;
     end
@@ -1347,20 +1448,20 @@ global current_node_config UT_GUI
     update_t_table_on_GUI(0,UT_GUI.trigger_table,UT_GUI.trigger_table);
 end
 
-function remove_last_node(hObject,~)
-global UT_GUI
+function remove_last_node(~,~)
+global UT_GUI current_node_config
     UT_GUI.nodes_position(end,:)=[];
     try
         set(UT_GUI.node_pos,'XData',UT_GUI.nodes_position(:,1),'YData',UT_GUI.nodes_position(:,2));
     catch
     end
-    delete(get(hObject,'Parent'));
+    delete(current_node_config.figure_handle);
 end
 
 function set_path_configuration(source_node,dest_node,position,path_count)
-global current_path_config
+global current_path_config UT_GUI
     current_path_config.figure_handle=figure('Units', 'Pixels'...
-    ,'Position', [position(1) position(2) 550 100]...
+    ,'Position', [position(1) position(2) 550*(1-UT_GUI.heart_model)+620*UT_GUI.heart_model 100]...
     ,'Resize','off'...
     ,'Name','Path Settings'...
     ,'NumberTitle','Off','CloseRequestFcn',@remove_last_path,'MenuBar','none');
@@ -1378,30 +1479,42 @@ global current_path_config
     current_path_config.current_bc=uicontrol('Parent',current_path_config.figure_handle,'Style','edit','String','999','Position',[395,50,70,20],'BackgroundColor','white');
     uicontrol('Style','text','String','Def. Bwd Dur.','Position',[470,70,70,20]);  
     current_path_config.def_bc=uicontrol('Parent',current_path_config.figure_handle,'Style','edit','String','999','Position',[470,50,70,20],'BackgroundColor','white');
-    uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[120,20,80,30],'String','OK','Callback',@read_path_data);
-    uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[205,20,80,30],'String','Cancel','Callback',@remove_last_path);
+    if(UT_GUI.heart_model)
+        uicontrol('Style','text','String','All Default','Position',[545,70,70,20]);  
+        current_path_config.all_def=uicontrol('Parent',current_path_config.figure_handle,'Style','edit','String','999','Position',[545,50,70,20],'BackgroundColor','white');
+        uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[225,10,80,30],'String','OK','Callback',@read_path_data);
+        uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[310,10,80,30],'String','Cancel','Callback',@remove_last_path);
+    else
+        uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[120,10,80,30],'String','OK','Callback',@read_path_data);
+        uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[205,10,80,30],'String','Cancel','Callback',@remove_last_path);
+    end
 end
 
 function read_path_data(~,~)
 global current_path_config UT_GUI
-    temp=[str2double(get(current_path_config.path_number,'String')) str2double(get(current_path_config.source_node,'String')) str2double(get(current_path_config.dest_node,'String'))...
+    if(UT_GUI.heart_model)
+        temp=[str2double(get(current_path_config.path_number,'String')) str2double(get(current_path_config.source_node,'String')) str2double(get(current_path_config.dest_node,'String'))...
+        str2double(get(current_path_config.current_fc,'String')) str2double(get(current_path_config.def_fc,'String')) str2double(get(current_path_config.current_bc,'String')) str2double(get(current_path_config.def_bc,'String'))...
+        str2double(get(current_path_config.all_def,'String'))];
+    else
+        temp=[str2double(get(current_path_config.path_number,'String')) str2double(get(current_path_config.source_node,'String')) str2double(get(current_path_config.dest_node,'String'))...
         str2double(get(current_path_config.current_fc,'String')) str2double(get(current_path_config.def_fc,'String')) str2double(get(current_path_config.current_bc,'String')) str2double(get(current_path_config.def_bc,'String'))];
-    %set(UT_GUI.no_of_paths_handle,'String',num2str(size(UT_GUI.path_table,1)));
-    if(size(temp,2)~=7)
+    end
+    if(size(temp,2)~=(7+UT_GUI.heart_model))
         errordlg('Invalid Entries for Path!!!','Check values','modal');
         return;
     end
-    UT_GUI.path_table(UT_GUI.px+1,:)=temp;
     UT_GUI.px=UT_GUI.px+1;
+    UT_GUI.path_table(UT_GUI.px,:)=temp;
     set(UT_GUI.path_table_handle,'Data',UT_GUI.path_table);
-    close(current_path_config.figure_handle);
+    delete(current_path_config.figure_handle);
 end
 
 function remove_last_path(hObject,~)
-global UT_GUI
+global UT_GUI current_path_config
     delete(UT_GUI.paths_handle(end));
     UT_GUI.paths_handle(end)=[];
-    close(get(hObject,'Parent'));
+    delete(current_path_config.figure_handle);
 end
 
 function remove_node(~,~)
