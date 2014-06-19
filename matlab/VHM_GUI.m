@@ -10,9 +10,14 @@ function err_code=VHM_GUI(varargin)
         UT_GUI.udp_handle=[]; 
         assignin('base','u',UT_GUI.udp_handle);
         UT_GUI.ok_to_display=0;
+        UT_GUI.IP={'192.168.90.90'};
         UT_GUI.logging_in_progress=0;
         UT_GUI.update_in_progress=0;
         UT_GUI.screen_size=get(0,'ScreenSize');
+        UT_GUI.nx=0;
+        UT_GUI.ny=7;
+        UT_GUI.px=0;
+        UT_GUI.py=7;
         get_model_info;
         UT_GUI.main_gui_handle=figure('Units', 'normalized'...
             ,'Position', [0 0 1 1]...
@@ -21,6 +26,8 @@ function err_code=VHM_GUI(varargin)
             ,'NumberTitle','Off');   
         if(UT_GUI.heart_model)
             set(UT_GUI.main_gui_handle,'Name','Complex Model GUI');
+            UT_GUI.ny=12;
+            UT_GUI.py=8;
         end
         set(UT_GUI.main_gui_handle,'MenuBar','none');
         set(UT_GUI.main_gui_handle,'ToolBar','none');
@@ -29,10 +36,6 @@ function err_code=VHM_GUI(varargin)
         UT_GUI.MAX_PACES=20;
         UT_GUI.mode=0;
         UT_GUI.formal_mode=nargin;
-        UT_GUI.nx=0;
-        UT_GUI.ny=0;
-        UT_GUI.px=0;
-        UT_GUI.py=0;
         UT_GUI.node_table=[];
         UT_GUI.path_table=[];
         UT_GUI.trigger_table=[];
@@ -73,7 +76,8 @@ function err_code=VHM_GUI(varargin)
             ,'Position',[0.76 0.8 0.055 0.15]);
         UT_GUI.speed_list=uicontrol('Parent',UT_GUI.panel2_handle,'String',{'1x','0.5x','0.25x','0.1x'},'Style',...
             'popupmenu','Units','normalized'...
-            ,'Position',[0.82 0.8 0.08 0.15]);
+            ,'Position',[0.82 0.8 0.08 0.15]...
+            ,'Callback',@change_speed);
         UT_GUI.pace_button=uicontrol('Parent',UT_GUI.panel2_handle...
             ,'String','Pace Now'...
             ,'Style','pushbutton'...
@@ -191,6 +195,7 @@ function err_code=VHM_GUI(varargin)
             UT_GUI.delete_path_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\delete_path.png'),'TooltipString','Remove Path','ClickedCallback',@remove_path);
             UT_GUI.model_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\heart_model.png'),'TooltipString','Hardware Heart Mode');
             UT_GUI.load_trigger_table_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\upload.png'),'TooltipString','Upload Trigger Table','ClickedCallback',@upload_trigger_table);
+            UT_GUI.ip_address_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\network_ip.png'),'TooltipString','IP address','ClickedCallback',@change_ip);
         end
         UT_GUI.play_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\clock.png'),'TooltipString','Current Mode','ClickedCallback',@switch_modes,'Tag','current');
         UT_GUI.pacemaker_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\no_pacemaker.png'),'TooltipString','Pacemaker Off','ClickedCallback',@switch_modes,'Tag','poff');
@@ -207,6 +212,26 @@ function err_code=VHM_GUI(varargin)
         set(UT_GUI.main_gui_handle,'WindowButtonMotionFcn', @hinter);
         UT_GUI.node_hint_text_handle = text('Color', 'white', 'VerticalAlign', 'Bottom');
         UT_GUI.path_hint_text_handle = text('Color', 'white', 'VerticalAlign', 'Bottom');
+    end
+end
+
+function change_ip(~,~)
+    global UT_GUI
+    UT_GUI.IP=inputdlg('Enter the Heart IP address','IP Address',1,UT_GUI.IP);
+end
+
+function change_speed(hObject,~)
+global UT_GUI
+    speed_factor=get(hObject,'Value');
+    switch speed_factor
+        case 1
+            fprintf(UT_GUI.udp_handle,'s1');
+        case 2
+            fprintf(UT_GUI.udp_handle,'s2');
+        case 3
+            fprintf(UT_GUI.udp_handle,'s4');
+        case 4
+            fprintf(UT_GUI.udp_handle,'s10');
     end
 end
 
@@ -310,7 +335,7 @@ function plot_signals(option,current_node_activation_status,time_now,no_of_nodes
     persistent prev_value plot_handle text_handle time_frame offset_matrix working_handle_index handle_list
     global UT_GUI change changed_node signals_list
     if(option==0)
-        time_frame=100;
+        time_frame=200;
         working_handle_index=9999*ones(1,no_of_nodes);
         color_string='ymcrgb';
         UT_GUI.plot_axis_handle=axes('Parent',UT_GUI.panel3_handle,'Units','normalized','Position',[0 0 1 1]);
@@ -344,7 +369,7 @@ function plot_signals(option,current_node_activation_status,time_now,no_of_nodes
     end
     if(change~=0)
         %remove offset from the signals for easier computation
-        prev_value=prev_value-repmat(offset_matrix,100,1);
+        prev_value=prev_value-repmat(offset_matrix,time_frame,1);
         if(change==-1) % a plot is deleted
             %find the index of the deleted plot
             victim_index=sum(changed_node>signals_list)+1;
@@ -443,7 +468,7 @@ function plot_signals(option,current_node_activation_status,time_now,no_of_nodes
             end
             hold off;
         end
-        prev_value=prev_value+repmat(offset_matrix,100,1);
+        prev_value=prev_value+repmat(offset_matrix,time_frame,1);
         ylim([0 1.5*no_of_nodes]);
         change=0;
     end
@@ -548,7 +573,7 @@ function run_model(hObject,~)
                     UT_GUI.current_path_states=ones(1,UT_GUI.px);
                     UT_GUI.current_time=0;
                     setup_display_routine(0,99999999,@plot_refresher);%very large number of executions for approximation to infinite executions
-                    UT_GUI.udp_handle = udp('192.168.90.90', 4950, 'LocalPort', 4950);
+                    UT_GUI.udp_handle = udp(UT_GUI.IP{1}, 4950, 'LocalPort', 4950);
                     set(UT_GUI.udp_handle,'DatagramTerminateMode','on');
                     set(UT_GUI.udp_handle, 'ReadAsyncMode', 'continuous');
                     UT_GUI.udp_handle.DatagramReceivedFcn=@DatagramReceivedCallback;
@@ -667,12 +692,12 @@ function update_GUI(node_table,path_table)
     persistent prev_nodes_states prev_node_activation_status prev_path_states
     if(iscell(node_table)==iscell(path_table))
         if(iscell(node_table))
-            current_nodes_states=cell2mat(node_table(:,1))';
-            current_node_activation_status=cell2mat(node_table(:,6))';
-            current_path_states=cell2mat(path_table(:,1))';
+            current_nodes_states=cell2mat(node_table(:,1)');
+            current_node_activation_status=cell2mat(node_table(:,6+UT_GUI.heart_model*4)');
+            current_path_states=cell2mat(path_table(:,1)');
         else if(isnumeric(node_table))
                 current_nodes_states=node_table(:,1)';
-                current_node_activation_status=node_table(:,6)';
+                current_node_activation_status=node_table(:,6+UT_GUI.heart_model*4)';
                 current_path_states=path_table(:,1)';
             else
                 disp('invalid datatype for node_table and path_table');
@@ -730,11 +755,11 @@ function display_signals_or_tables(hObject,~)
         set(hObject,'String','Show Tables');
     else
         UT_GUI.ok_to_display=0;
-        try
+        %try
             delete(UT_GUI.plot_axis_handle);
             delete(UT_GUI.signals_selection_button_handle);
-        catch
-        end
+        %catch
+        %end
         set(UT_GUI.node_table_handle,'Visible','on');
         set(UT_GUI.path_table_handle,'Visible','on');
         set(UT_GUI.trigger_table_handle,'Visible','on');   
@@ -763,7 +788,7 @@ end
 function gather_data(fill)
     global UT_GUI
     waitbar_handle=waitbar(0,'Gathering Data...');
-    UT_GUI.udp_handle = udp('192.168.90.90', 4950, 'LocalPort', 4950);
+    UT_GUI.udp_handle = udp(UT_GUI.IP{1}, 4950, 'LocalPort', 4950);
     set(UT_GUI.udp_handle,'DatagramTerminateMode','off');
     fopen(UT_GUI.udp_handle);
     fprintf(UT_GUI.udp_handle,'x');
@@ -953,7 +978,7 @@ function upload_trigger_table(~,~)
         end
     end
     transmit=strcat(transmit,',z');
-    UT_GUI.udp_handle = udp('192.168.90.90', 4950, 'LocalPort', 4950);
+    UT_GUI.udp_handle = udp(UT_GUI.IP{1}, 4950, 'LocalPort', 4950);
     set(UT_GUI.udp_handle,'DatagramTerminateMode','off');
     fopen(UT_GUI.udp_handle);
     fprintf(UT_GUI.udp_handle,'a');
@@ -1251,7 +1276,7 @@ function response=update_tables
     end
     %The character 'z' indicates end of transmission
     transmit=strcat(transmit,',z');
-    UT_GUI.udp_handle = udp('192.168.90.90', 4950, 'LocalPort', 4950);
+    UT_GUI.udp_handle = udp(UT_GUI.IP{1}, 4950, 'LocalPort', 4950);
     set(UT_GUI.udp_handle,'DatagramTerminateMode','off');
     fopen(UT_GUI.udp_handle);
     fprintf(UT_GUI.udp_handle,'a');
@@ -1290,9 +1315,9 @@ end
     
 function save_model(~,~)
     global UT_GUI
-    if(config_check~=1)
-        return;
-    end
+    %if(config_check~=1)
+    %    return;
+    %end
     [fname,path] = uiputfile('*.mat', 'Save VHM Model');
     dir=[path fname];
     node_table=get(UT_GUI.node_table_handle,'Data');
@@ -1340,6 +1365,7 @@ end
 
 function hinter(hObject,eventdata)
     global UT_GUI
+    enable=1;
     if(UT_GUI.nx>0)
         tolerance=10;
         mousePoint=get(UT_GUI.heart_axes_handle,'CurrentPoint');
@@ -1351,6 +1377,7 @@ function hinter(hObject,eventdata)
             UT_GUI.node_in_focus=ind;
             set(UT_GUI.node_hint_text_handle, 'String', ['Node ' num2str(ind)]);
             set(UT_GUI.node_hint_text_handle, 'Position', [UT_GUI.nodes_position(ind,1) + 2*(rand()-0.5)*tolerance, UT_GUI.nodes_position(ind,2) + 2*(rand()-0.5)*tolerance]);
+            enable=0;
         else
             UT_GUI.node_in_focus=0;
             set(UT_GUI.node_hint_text_handle, 'String', '');
@@ -1359,7 +1386,7 @@ function hinter(hObject,eventdata)
             pathLengths=hypot(UT_GUI.nodes_position(UT_GUI.path_table(:,2),1)-UT_GUI.nodes_position(UT_GUI.path_table(:,3),1),UT_GUI.nodes_position(UT_GUI.path_table(:,2),2)-UT_GUI.nodes_position(UT_GUI.path_table(:,3),2));
             pathtrace=[UT_GUI.nodes_position(UT_GUI.path_table(:,2),:);UT_GUI.nodes_position(UT_GUI.path_table(:,3),:)];
             [val,ind]=min(abs(pathLengths-(hypot(UT_GUI.nodes_position(UT_GUI.path_table(:,2),1)-mouseX,UT_GUI.nodes_position(UT_GUI.path_table(:,2),2)-mouseY)+hypot(mouseX-UT_GUI.nodes_position(UT_GUI.path_table(:,3),1),mouseY-UT_GUI.nodes_position(UT_GUI.path_table(:,3),2)))));
-            if(val<1)
+            if(enable && val<1)
                 set(UT_GUI.path_hint_text_handle,'String',['Path ' num2str(ind)]);
                 set(UT_GUI.path_hint_text_handle,'Position',[mouseX+5,mouseY+5]);
             else
