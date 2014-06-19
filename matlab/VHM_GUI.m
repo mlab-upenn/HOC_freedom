@@ -10,7 +10,7 @@ function err_code=VHM_GUI(varargin)
         UT_GUI.udp_handle=[]; 
         assignin('base','u',UT_GUI.udp_handle);
         UT_GUI.ok_to_display=0;
-        UT_GUI.IP={'192.168.90.90'};
+        UT_GUI.IP={'158.130.12.40'};
         UT_GUI.logging_in_progress=0;
         UT_GUI.update_in_progress=0;
         UT_GUI.screen_size=get(0,'ScreenSize');
@@ -18,6 +18,7 @@ function err_code=VHM_GUI(varargin)
         UT_GUI.ny=7;
         UT_GUI.px=0;
         UT_GUI.py=7;
+        UT_GUI.factor=1;
         get_model_info;
         UT_GUI.main_gui_handle=figure('Units', 'normalized'...
             ,'Position', [0 0 1 1]...
@@ -148,7 +149,7 @@ function err_code=VHM_GUI(varargin)
             ,'ColumnName',{'Trigger Count'}...
             ,'CellEditCallback',@update_meaning...
             ,'TooltipString','Pacing setup table');
-        UT_GUI.im=imread('H:\VHM\HOC_freedom\HOC_freedom\new_codes\EP.jpg');
+        UT_GUI.im=imread('D:\VHM\HOC_freedom\HOC_freedom\new_codes\EP.jpg');
         UT_GUI.im=imagesc(UT_GUI.im);
         UT_GUI.nodes_position=[];
         UT_GUI.node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','r','MarkerFaceColor','r','HitTest','off');
@@ -185,21 +186,21 @@ function err_code=VHM_GUI(varargin)
             for i=1:UT_GUI.px
                 UT_GUI.paths_handle(end+1)=line([node_pos(path_table(i,2),1) node_pos(path_table(i,3),1)],[node_pos(path_table(i,2),2) node_pos(path_table(i,3),2)],'LineWidth',5);
             end
-            UT_GUI.model_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\software-icon.png'),'TooltipString','Software Heart Model');
+            UT_GUI.model_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\software-icon.png'),'TooltipString','Software Heart Model');
         else
-            UT_GUI.new_file_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\new.png'),'TooltipString','New Model','ClickedCallback',@new_model);
-            UT_GUI.load_file_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\open-file.png'),'TooltipString','Load Model','ClickedCallback',@load_model);
-            UT_GUI.save_file_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\save.png'),'TooltipString','Save Model','ClickedCallback',@save_model);
-            UT_GUI.add_path_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\add_path.png'),'TooltipString','Add path','ClickedCallback',@add_path);
-            UT_GUI.delete_node_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\delete_node.png'),'TooltipString','Remove Node','ClickedCallback',@remove_node);
-            UT_GUI.delete_path_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\delete_path.png'),'TooltipString','Remove Path','ClickedCallback',@remove_path);
-            UT_GUI.model_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\heart_model.png'),'TooltipString','Hardware Heart Mode');
-            UT_GUI.load_trigger_table_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\upload.png'),'TooltipString','Upload Trigger Table','ClickedCallback',@upload_trigger_table);
-            UT_GUI.ip_address_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\network_ip.png'),'TooltipString','IP address','ClickedCallback',@change_ip);
+            UT_GUI.new_file_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\new.png'),'TooltipString','New Model','ClickedCallback',@new_model);
+            UT_GUI.load_file_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\open-file.png'),'TooltipString','Load Model','ClickedCallback',@load_model);
+            UT_GUI.save_file_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\save.png'),'TooltipString','Save Model','ClickedCallback',@save_model);
+            UT_GUI.add_path_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\add_path.png'),'TooltipString','Add path','ClickedCallback',@add_path);
+            UT_GUI.delete_node_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\delete_node.png'),'TooltipString','Remove Node','ClickedCallback',@remove_node);
+            UT_GUI.delete_path_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\delete_path.png'),'TooltipString','Remove Path','ClickedCallback',@remove_path);
+            UT_GUI.model_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\heart_model.png'),'TooltipString','Hardware Heart Mode');
+            UT_GUI.load_trigger_table_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\upload.png'),'TooltipString','Upload Trigger Table','ClickedCallback',@upload_trigger_table);
+            UT_GUI.ip_address_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\network_ip.png'),'TooltipString','IP address','ClickedCallback',@change_ip);
         end
-        UT_GUI.play_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\clock.png'),'TooltipString','Current Mode','ClickedCallback',@switch_modes,'Tag','current');
-        UT_GUI.pacemaker_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\no_pacemaker.png'),'TooltipString','Pacemaker Off','ClickedCallback',@switch_modes,'Tag','poff');
-        UT_GUI.view_history_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\log.png'),'TooltipString','View Heart Log','ClickedCallback',@display_log);
+        UT_GUI.play_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\clock.png'),'TooltipString','Current Mode','ClickedCallback',@switch_modes,'Tag','current');
+        UT_GUI.pacemaker_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\no_pacemaker.png'),'TooltipString','Pacemaker Off','ClickedCallback',@switch_modes,'Tag','poff');
+        UT_GUI.view_history_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\log.png'),'TooltipString','View Heart Log','ClickedCallback',@display_log);
         UT_GUI.selected_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','g','MarkerFaceColor','g');
         UT_GUI.activated_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','y','MarkerFaceColor','y','HitTest','off');
         UT_GUI.excited_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','g','MarkerFaceColor','g','HitTest','off');
@@ -226,12 +227,16 @@ global UT_GUI
     switch speed_factor
         case 1
             fprintf(UT_GUI.udp_handle,'s1');
+            UT_GUI.factor=1;
         case 2
             fprintf(UT_GUI.udp_handle,'s2');
+            UT_GUI.factor=2;
         case 3
             fprintf(UT_GUI.udp_handle,'s4');
+            UT_GUI.factor=4;
         case 4
             fprintf(UT_GUI.udp_handle,'s10');
+            UT_GUI.factor=10;
     end
 end
 
@@ -275,7 +280,9 @@ function switch_modes(hObject,~)
     switch(get(hObject,'Tag'))
     case 'current'
         if(~UT_GUI.formal_mode)
-            gather_data(0);
+            if(gather_data(0))
+                return;
+            end
         end
         UT_GUI.start_point=1;
         set(UT_GUI.position_slider,'Callback',@change_position);
@@ -283,7 +290,7 @@ function switch_modes(hObject,~)
         set(UT_GUI.position_slider,'Max',UT_GUI.time_stamp_history(end));
         set(UT_GUI.position_slider,'Value',UT_GUI.time_stamp_history(1));
         set(UT_GUI.max_time_display,'String',strcat(num2str(double(uint64((UT_GUI.time_stamp_history(end)-UT_GUI.time_stamp_history(1))/10))/100),'s'),'FontSize',8);
-        set(hObject,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\history.png'),'TooltipString','Playback Mode','Tag','playback');
+        set(hObject,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\history.png'),'TooltipString','Playback Mode','Tag','playback');
         UT_GUI.mode=1;
     case 'playback'
         set(UT_GUI.position_slider,'Callback','');
@@ -291,7 +298,7 @@ function switch_modes(hObject,~)
         set(UT_GUI.position_slider,'Value',0);
         set(UT_GUI.position_slider,'Max',10);
         set(UT_GUI.max_time_display,'String','Inf','FontSize',14);
-        set(hObject,'CData',customize_image('H:\VHM\HOC_freedom\HOC_freedom\icons\clock.png'),'TooltipString','Current Mode','Tag','current');
+        set(hObject,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\clock.png'),'TooltipString','Current Mode','Tag','current');
         UT_GUI.mode=0;
     case 'pon'
         %under construction
@@ -335,7 +342,7 @@ function plot_signals(option,current_node_activation_status,time_now,no_of_nodes
     persistent prev_value plot_handle text_handle time_frame offset_matrix working_handle_index handle_list
     global UT_GUI change changed_node signals_list
     if(option==0)
-        time_frame=200;
+        time_frame=200*UT_GUI.factor;
         working_handle_index=9999*ones(1,no_of_nodes);
         color_string='ymcrgb';
         UT_GUI.plot_axis_handle=axes('Parent',UT_GUI.panel3_handle,'Units','normalized','Position',[0 0 1 1]);
@@ -579,6 +586,7 @@ function run_model(hObject,~)
                     UT_GUI.udp_handle.DatagramReceivedFcn=@DatagramReceivedCallback;
                     fopen(UT_GUI.udp_handle);
                     fprintf(UT_GUI.udp_handle,'x');
+                    change_speed(UT_GUI.speed_list,0);
                     start(UT_GUI.periodic_function_handle);
                 end
             end
@@ -590,6 +598,7 @@ function run_model(hObject,~)
     else
         if(~UT_GUI.mode&&~UT_GUI.formal_mode)
             UT_GUI.udp_handle.DatagramReceivedFcn='';
+            fprintf(UT_GUI.udp_handle,'s0');
             flushinput(UT_GUI.udp_handle);
             fclose(UT_GUI.udp_handle);
             clear UT_GUI.udp_handle;
@@ -612,7 +621,9 @@ function run_model(hObject,~)
         UT_GUI.ok_to_display=0;
         try
             delete(UT_GUI.plot_axis_handle);
-            delete(UT_GUI.signals_selection_button_handle);
+            for i=1:UT_GUI.nx,
+                delete(UT_GUI.signals_selection_button_handle(i));
+            end
         catch
         end
         set(UT_GUI.node_table_handle,'Visible','on');
@@ -755,11 +766,10 @@ function display_signals_or_tables(hObject,~)
         set(hObject,'String','Show Tables');
     else
         UT_GUI.ok_to_display=0;
-        %try
-            delete(UT_GUI.plot_axis_handle);
-            delete(UT_GUI.signals_selection_button_handle);
-        %catch
-        %end
+        delete(UT_GUI.plot_axis_handle);
+        for i=1:UT_GUI.nx,
+            delete(UT_GUI.signals_selection_button_handle(i));
+        end
         set(UT_GUI.node_table_handle,'Visible','on');
         set(UT_GUI.path_table_handle,'Visible','on');
         set(UT_GUI.trigger_table_handle,'Visible','on');   
@@ -785,8 +795,9 @@ global UT_GUI signals_list change changed_node
     end
 end
        
-function gather_data(fill)
+function response=gather_data(fill)
     global UT_GUI
+    response=0;
     waitbar_handle=waitbar(0,'Gathering Data...');
     UT_GUI.udp_handle = udp(UT_GUI.IP{1}, 4950, 'LocalPort', 4950);
     set(UT_GUI.udp_handle,'DatagramTerminateMode','off');
@@ -794,13 +805,24 @@ function gather_data(fill)
     fprintf(UT_GUI.udp_handle,'x');
     pause(1);
     fprintf(UT_GUI.udp_handle,'l');
-    pause(1);
     while(UT_GUI.udp_handle.BytesAvailable)
         fscanf(UT_GUI.udp_handle);
     end
     fprintf(UT_GUI.udp_handle,'ok');
     data=fscanf(UT_GUI.udp_handle);
-    Log_plot_helper2(0,data,UT_GUI.nx,UT_GUI.px,fill);
+    if(Log_plot_helper2(0,data,UT_GUI.nx,UT_GUI.px,fill))
+        for i=1:1000
+            fprintf(UT_GUI.udp_handle,'x');
+            fscanf(UT_GUI.udp_handle);
+        end
+        fclose(UT_GUI.udp_handle);
+        clear UT_GUI.udp_handle;
+        waitbar(1000,waitbar_handle);
+        close(waitbar_handle);
+        errordlg('Not enough data in log, try again later','Insufficient data','modal');
+        response=1;
+        return;
+    end
     loop_count=1;
     while(1)
       fprintf(UT_GUI.udp_handle,'ok');%send acknowledgement for every datagram received, without this, heart won't continue sending data
@@ -827,16 +849,17 @@ function display_log(hObject,~)
         return;
     end
     UT_GUI.logging_in_progress=1;
-    current_range=zeros(1000,UT_GUI.nx);
     if((UT_GUI.ok_to_display==1)||(UT_GUI.update_in_progress==1))
         errordlg('Close other Windows before continuing','Multiple windows open!','modal');
         UT_GUI.logging_in_progress=0;
         return;
     end
-    if(~UT_GUI.mode)
-        gather_data(1);
+    if(gather_data(1))
+        UT_GUI.logging_in_progress=0;
+        return;
     end
     duration=size(UT_GUI.node_activation_status_history,1);
+    current_range=zeros(duration,UT_GUI.nx);
     Heart_log.figure_handle=figure('Units', 'normalized'...
         ,'Position', [0 0 1 1]...
         ,'Resize','on'...
@@ -861,7 +884,7 @@ function display_log(hObject,~)
     Heart_log.slider2_handle=uicontrol('Style','slider'...
         ,'Min',1,...
         'Max',duration...
-        ,'Value',1000,...
+        ,'Value',duration,...
         'Units','normalized'...
         ,'Position',[0.15 0.125 0.70 0.025]...
         ,'SliderStep',[0.0001 0.001]...
@@ -877,7 +900,7 @@ function display_log(hObject,~)
     color_string='ymcrgb';
     hold on;
     for i=1:UT_GUI.nx
-        current_range(:,i)=UT_GUI.node_activation_status_history(1:1000,i)+1.5*(UT_GUI.nx-i);
+        current_range(:,i)=UT_GUI.node_activation_status_history(1:duration,i)+1.5*(UT_GUI.nx-i);
         temp_string=strcat('Node ',num2str(i));
         Heart_log.label_handle(i)=text('Units','data','Position',[500,1.5*(UT_GUI.nx-i)+0.75],'String',temp_string,'HitTest','off');
         Heart_log.plot_handle(i)=plot(current_range(:,i));
@@ -1512,8 +1535,8 @@ global current_path_config UT_GUI
         uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[225,10,80,30],'String','OK','Callback',@read_path_data);
         uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[310,10,80,30],'String','Cancel','Callback',@remove_last_path);
     else
-        uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[120,10,80,30],'String','OK','Callback',@read_path_data);
-        uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[205,10,80,30],'String','Cancel','Callback',@remove_last_path);
+        uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[180,10,80,30],'String','OK','Callback',@read_path_data);
+        uicontrol('Parent',current_path_config.figure_handle,'Style','pushbutton','Position',[265,10,80,30],'String','Cancel','Callback',@remove_last_path);
     end
 end
 

@@ -40,8 +40,10 @@ Similar logic is followed to encode the Nodes' state and stored in nodes_status
 #define MAXBUFLEN 2000 
 #define ASENSE_PIN 0  		//GPIO0 pin
 #define VSENSE_PIN 1  		//GPIO1 pin
-#define NODE_1_PIN 3 		//GPIO3 pin
-#define NODE_LAST_PIN 4 	//GPIO4 pin
+#define NODE_1_PIN 3
+ 		//GPIO3 pin
+#define NODE_LAST_PIN 4
+ 	//GPIO4 pin
 #define MEAS_PIN1 2  		//GPIO2 pin
 #define MEAS_PIN2 5 		//GPIO5 pin
 #define MAX_NODES 34
@@ -72,6 +74,7 @@ char px = 3;
 char py = 7;
 int max_connections;
 int** node_table = makeTable(MAX_NODES,MAX_NX_COLS);
+int activation_column[MAX_NODES];
 int** path_table = makeTable(MAX_PATHS,MAX_PX_COLS);
 int** paths_to_each_node=makeTable(MAX_NODES,MAX_PATHS);
 int** trigger_table=makeTable(MAX_NODES,CURRENT_TIME_TO_PACE_COL+1);
@@ -82,6 +85,8 @@ int sch_activation=0;//regular activation is enabled when sch_activation is 1
 volatile char connection_lost=0;
 volatile int factor=1;
 int mode=0;
+int node_activation_index=5;
+int path_activation_index=6;
 int node_paced=-1;
 struct heart_state{
 	size_t activation_data;
@@ -185,6 +190,10 @@ int main()
 		{
 			stopHeart();
 			sleep(1);
+			timeout.tv_sec=0;
+			if(setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout))<0){
+				perror("setsockopt");
+			}
 			memset(buf,0,MAXBUFLEN);
 			char temp_string[6];
 			for(int i=current_index+1;i!=current_index;i=(i+1)%LOG_SIZE)
@@ -207,7 +216,10 @@ int main()
 				(struct sockaddr *)&their_addr, addr_len)) == -1) {
 					perror("talker: sendto");
 			}
-			startHeart();
+			timeout.tv_sec=10;
+			if(setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout))<0){
+				perror("setsockopt");
+			}startHeart();
 		}
 		else if(strncmp(receive_buf,"t",1)==0)
 		{
@@ -240,14 +252,23 @@ void heart_scheduler(int sig)//periodic function to call the heart model every 1
 	//clock_gettime(CLOCK_REALTIME,&startwatch);
 	pthread_mutex_lock(&pace_lock);
 	if(node_paced>=0){
-		node_table[node_paced][5+mode*4]|=1;		
+		activation_column[node_paced]|=1;		
 		node_paced=-1;
 	}
 	pthread_mutex_unlock(&pace_lock);
+	for(int i=0;i<nx;i++)
+	{
+		node_table[i][5+mode*4]=activation_column[i];
+	}
 	heart_model(node_table,nx,path_table,px,paths_to_each_node,max_connections,node_automatron,path_automatron,mode);//heart_model function to update the table every 1ms
+	for(int i=0;i<nx;i++)
+	{
+		activation_column[i]=node_table[i][5+mode*4];
+		node_table[i][5+mode*4]|=node_table[i][6+mode*4];
+	}
 	if(sch_activation==1)
 	{
-		periodic_trigger(node_table,trigger_table,nx,&sch_activation,mode);
+		periodic_trigger(node_table,activation_column,trigger_table,nx,&sch_activation,mode);
 		if(sch_activation==0)
 		{
 			for(int i=0;i<nx;i++)
@@ -538,6 +559,7 @@ void freeTable(int** pointer,char row)
 	free(pointer);
 	pointer=NULL;
 }
+
 /* NOTE: indices have to be checked...
  path has to less than no. of rows*/
 void loadTable()//function to load the default values to the variables

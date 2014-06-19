@@ -1,12 +1,16 @@
-function Log_plot_helper2(option,response,no_of_nodes,no_of_paths,fill)
+function result=Log_plot_helper2(option,response,no_of_nodes,no_of_paths,fill)
 global UT_GUI start_time
-[current_nodes_states,current_node_activation_status,current_path_states,current_time]=data_decoder2(response,no_of_nodes,no_of_paths);
+    result=0;
+    [current_nodes_states,current_node_activation_status,current_path_states,current_time]=data_decoder2(response,no_of_nodes,no_of_paths);
     if(option==0)
         start_time=current_time;
         UT_GUI.node_activation_status_history=current_node_activation_status;
         UT_GUI.nodes_states_history=current_nodes_states;
         UT_GUI.path_states_history=current_path_states;
-        UT_GUI.time_stamp_history=current_time;
+        UT_GUI.time_stamp_history=current_time;            
+        if(current_time==0)
+            result=1;
+        end
     else
         if(fill)
             for i=start_time+1:current_time-1,
