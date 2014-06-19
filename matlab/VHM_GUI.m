@@ -186,7 +186,7 @@ function err_code=VHM_GUI(varargin)
             for i=1:UT_GUI.px
                 UT_GUI.paths_handle(end+1)=line([node_pos(path_table(i,2),1) node_pos(path_table(i,3),1)],[node_pos(path_table(i,2),2) node_pos(path_table(i,3),2)],'LineWidth',5);
             end
-            UT_GUI.model_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('D:\VHM\HOC_freedom\HOC_freedom\icons\software-icon.png'),'TooltipString','Software Heart Model');
+            UT_GUI.model_mode_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('..\icons\software-icon.png'),'TooltipString','Software Heart Model');
         else
             UT_GUI.new_file_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('..\icons\new.png'),'TooltipString','New Model','ClickedCallback',@new_model);
             UT_GUI.load_file_handle=uipushtool(UT_GUI.toolbar_handle,'CData',customize_image('..\icons\open-file.png'),'TooltipString','Load Model','ClickedCallback',@load_model);
