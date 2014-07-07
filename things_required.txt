@@ -1,0 +1,13 @@
+Components required
+
+1)Raspberry Pi
+2)Freedom board
+3)Analog interface circuit
+4)1:2 mux x 4 74157
+5)4 opamps for voltage follower circuit 741
+6)2 red LEDs, 2 green LEDs
+7)62ohms x 4 blue,red,black color coding
+8)2:1 demux x 4(optional), search web
+9)Two toggle switches
+10)One push button switch
+
