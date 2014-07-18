@@ -521,7 +521,6 @@ end
 
 function emergency_pacer(~,~)%pace at will
     global GUI
-    disp(GUI.node_in_focus)
     if(GUI.node_in_focus)        
         fprintf(GUI.udp_handle,['e' num2str(GUI.node_in_focus-1)]); 
         set(GUI.node_hint_text_handle,'String','Paced');
@@ -1389,7 +1388,7 @@ end
 function button_press(hObject,~)
 global GUI
 persistent press_count start_point end_point source_node dest_node
-    tolerance=7;
+    tolerance=10;
     pt=round(get(hObject,'CurrentPoint'));
     if(GUI.add_path_mode==0)%mouse clicks results in adding a node
         press_count=0;
@@ -1406,15 +1405,17 @@ persistent press_count start_point end_point source_node dest_node
                 source_node=ind;%mark this node as the source node for the path
             else
                 end_point=GUI.nodes_position(ind,:);
-                set(GUI.selected_node_pos,'XData',[],'YData',[]);
-                GUI.paths_handle(end+1)=line([start_point(1) end_point(1)],[start_point(2) end_point(2)],'LineWidth',5);
-                dest_node=ind;%mark this node as the destination node for the path
-                set_path_configuration(source_node,dest_node,end_point,size(GUI.paths_handle,1));%display dialog box for more details about the path
-                start_point=[];
-                end_point=[];
-                source_node=[];
-                dest_node=[];
-                press_count=-1;
+                if(start_point~=end_point)
+                    set(GUI.selected_node_pos,'XData',[],'YData',[]);
+                    GUI.paths_handle(end+1)=line([start_point(1) end_point(1)],[start_point(2) end_point(2)],'LineWidth',5);
+                    dest_node=ind;%mark this node as the destination node for the path
+                    set_path_configuration(source_node,dest_node,end_point,size(GUI.paths_handle,1));%display dialog box for more details about the path
+                    start_point=[];
+                    end_point=[];
+                    source_node=[];
+                    dest_node=[];
+                    press_count=-1;
+                end
             end
             press_count=press_count+1;
         end 
@@ -1426,6 +1427,7 @@ function hinter(hObject,eventdata)
     enable=1;
     if(GUI.nx>0)% if any nodes present, display node number
         tolerance=10;
+        sign=[-2,1];
         mousePoint=get(GUI.heart_axes_handle,'CurrentPoint');
         mouseX = mousePoint(1,1);
         mouseY = mousePoint(1,2);
@@ -1434,7 +1436,7 @@ function hinter(hObject,eventdata)
         if abs(mouseX - GUI.nodes_position(ind,1)) < tolerance && abs(mouseY - GUI.nodes_position(ind,2)) < tolerance
             GUI.node_in_focus=ind;
             set(GUI.node_hint_text_handle, 'String', ['Node ' num2str(ind)]);
-            set(GUI.node_hint_text_handle, 'Position', [GUI.nodes_position(ind,1) + 2*(rand()-0.5)*tolerance, GUI.nodes_position(ind,2) + 2*(rand()-0.5)*tolerance]);%rand for varying the position of the hint text to prevent hidden text
+            set(GUI.node_hint_text_handle, 'Position', [GUI.nodes_position(ind,1) + sign((rand()>0.5)+1)*tolerance, GUI.nodes_position(ind,2) + sign((rand()>0.5)+1)*tolerance]);%rand for varying the position of the hint text to prevent hidden text
             enable=0;%node text displayed, don't display path hint
         else
             GUI.node_in_focus=0;
