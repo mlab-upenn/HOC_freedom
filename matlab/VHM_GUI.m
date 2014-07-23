@@ -43,7 +43,6 @@ function err_code=VHM_GUI(varargin)
         GUI.trigger_table=[];
         GUI.paths_handle=[];
         GUI.add_path_mode=0;
-        GUI.pause=0;
         GUI.heart_axes_handle=axes('Units','normalized'...
             ,'Position',[0.005,0.195,0.47,0.8]...
             ,'Xlim',[0 530]...
@@ -326,7 +325,6 @@ global GUI
     delete(GUI.paths_handle);
     GUI.paths_handle=[];
     GUI.add_path_mode=0;
-    GUI.pause=0;
     GUI.time_display=0;
     set(GUI.node_pos,'XData',[],'YData',[]);
     set(GUI.node_table_handle,'Data',GUI.node_table);
@@ -340,11 +338,15 @@ global GUI
     [GUI.current_nodes_states(end+1,:),GUI.current_node_activation_status(end+1,:),GUI.current_path_states(end+1,:),GUI.current_time(end+1,:)]=data_decoder2(fscanf(GUI.udp_handle),GUI.nx,GUI.px);%decode received data and buffer for display
 end
 
-function plot_signals(option,current_node_activation_status,time_now,no_of_nodes)
+function plot_signals(option,curr_time_frame,current_node_activation_status,time_now,no_of_nodes)
     persistent prev_value plot_handle text_handle time_frame offset_matrix working_handle_index handle_list
     global GUI change changed_node signals_list
     if(option==0)
-        time_frame=200*GUI.factor;%data points per plot
+        try
+            delete(GUI.plot_axis_handle);
+        catch
+        end
+        time_frame=curr_time_frame;%data points per plot
         working_handle_index=9999*ones(1,no_of_nodes);%initialize temporary index
         color_string='ymcrgb';%colors for each signal on the plot
         GUI.plot_axis_handle=axes('Parent',GUI.panel3_handle,'Units','normalized','Position',[0 0 1 1]);%create the axes for the plot
@@ -619,10 +621,11 @@ function run_model(hObject,~)
 %         set(GUI.play_mode,'Enable',button_states.mode_menu);
 %         set(GUI.load_trigger_table_handle,'Enable',button_states.upload_trigger_table);
 %         set(GUI.pause_button_handle,'Enable','off');
-        GUI.pause=0;
         GUI.ok_to_display=0;
         try
             delete(GUI.plot_axis_handle);
+            delete(GUI.datapoints);
+            delete(GUI.curr_time_frame_handle);
             for i=1:GUI.nx,
                 delete(GUI.signals_selection_button_handle(i));
             end
@@ -659,7 +662,7 @@ function stop_display_routine
 end
 
 function plot_refresher(varargin)
-    global GUI change signals_list no_of_nodes
+    global GUI change signals_list no_of_nodes curr_time_frame change2
     persistent option temp_nodes_states temp_node_activation_status temp_path_states temp_current_time
     if(~isempty(GUI.current_nodes_states))
         %read the first element from all the buffers
@@ -673,27 +676,29 @@ function plot_refresher(varargin)
         GUI.current_path_states(1,:)=[];
         GUI.current_time(1,:)=[];
     end 
-    if(GUI.pause==0)
-        if(GUI.ok_to_display==1)
-            if(change~=0)
-                no_of_nodes=size(signals_list,2);
-            end
-            plot_signals(option,temp_node_activation_status(signals_list),temp_current_time,no_of_nodes);%call plot_signal function with suitable arguments
-            option=mod(option,2)+1;
-        else 
-            pause(0.000001);
+    if(GUI.ok_to_display==1)
+        if(change~=0)
+            no_of_nodes=size(signals_list,2);
+        end
+        if(change2~=0)
             option=0;
+            change2=0;
         end
-        colorcodes='bgrcw';
-        GUI.relaxed_nodes_position=GUI.nodes_position(temp_nodes_states==1,:);%find all the nodes in Rest
-        GUI.excited_nodes_position=GUI.nodes_position(temp_nodes_states==2,:);%find all the nodes in ERP
-        GUI.activated_nodes_position=GUI.nodes_position(temp_node_activation_status==1,:);%find all the nodes currently activated
-        set(GUI.relaxed_node_pos,'XData',GUI.relaxed_nodes_position(:,1),'YData',GUI.relaxed_nodes_position(:,2));
-        set(GUI.excited_node_pos,'XData',GUI.excited_nodes_position(:,1),'YData',GUI.excited_nodes_position(:,2));
-        set(GUI.activated_node_pos,'XData',GUI.activated_nodes_position(:,1),'YData',GUI.activated_nodes_position(:,2));
-        for i=1:GUI.px
-            set(GUI.paths_handle(i),'Color',colorcodes(temp_path_states(i)));
-        end
+        plot_signals(option,curr_time_frame,temp_node_activation_status(signals_list),temp_current_time,no_of_nodes);%call plot_signal function with suitable arguments
+        option=1;
+    else 
+        pause(0.000001);
+        option=0;
+    end
+    colorcodes='bgrcw';
+    GUI.relaxed_nodes_position=GUI.nodes_position(temp_nodes_states==1,:);%find all the nodes in Rest
+    GUI.excited_nodes_position=GUI.nodes_position(temp_nodes_states==2,:);%find all the nodes in ERP
+    GUI.activated_nodes_position=GUI.nodes_position(temp_node_activation_status==1,:);%find all the nodes currently activated
+    set(GUI.relaxed_node_pos,'XData',GUI.relaxed_nodes_position(:,1),'YData',GUI.relaxed_nodes_position(:,2));
+    set(GUI.excited_node_pos,'XData',GUI.excited_nodes_position(:,1),'YData',GUI.excited_nodes_position(:,2));
+    set(GUI.activated_node_pos,'XData',GUI.activated_nodes_position(:,1),'YData',GUI.activated_nodes_position(:,2));
+    for i=1:GUI.px
+        set(GUI.paths_handle(i),'Color',colorcodes(temp_path_states(i)));
     end
     if(GUI.mode)
         if((temp_current_time>=GUI.time_stamp_history(end))||(GUI.time_stamp_history(1)>=GUI.time_stamp_history(end)))
@@ -739,8 +744,16 @@ function update_GUI(node_table,path_table)%called when heart model is a script t
     time_stamp=time_stamp+1;
 end
 
+function change_time_frame(hObject,~)
+    global curr_time_frame change2
+    try
+        curr_time_frame=str2double(get(hObject,'String'));
+    catch
+    end
+    change2=1;
+end
 function display_signals_or_tables(hObject,~)
-    global GUI change signals_list no_of_nodes
+    global GUI change signals_list no_of_nodes change2 curr_time_frame
     if(strcmp(get(hObject,'String'),'Show Signals')==1) %setup axis for signals display
         if(config_check~=1)%check that the environment is in order
             return;
@@ -768,9 +781,23 @@ function display_signals_or_tables(hObject,~)
             ,'BackgroundColor',[0.7 0.9 0.8]...
             ,'Callback',@signals_to_display_picker,'Value',1);
         end
+        GUI.datapoints=uicontrol('Style','text',...
+            'String','Datapoints',...
+            'Units','Normalized',...
+            'ForegroundColor','Red',...
+            'BackgroundColor',[0.7 0.9 0.8],...
+            'Position',[0.57 0.97 0.03 0.025]);
+        GUI.curr_time_frame_handle=uicontrol('Style','edit',...
+            'String','200',...
+            'Units','Normalized',...
+            'BackgroundColor','White',...
+            'Position',[0.6 0.97 0.025 0.025],...
+            'Callback',@change_time_frame);
         no_of_nodes=GUI.nx;
         change=0;
         signals_list=1:GUI.nx;
+        change2=0;
+        curr_time_frame=200;
         GUI.ok_to_display=1;
         set(hObject,'String','Show Tables');
     else
@@ -778,6 +805,8 @@ function display_signals_or_tables(hObject,~)
         GUI.ok_to_display=0;
         %delete the plot and the radio buttons
         delete(GUI.plot_axis_handle);
+        delete(GUI.datapoints);
+        delete(GUI.curr_time_frame_handle);
         for i=1:GUI.nx,
             delete(GUI.signals_selection_button_handle(i));
         end
@@ -1389,12 +1418,17 @@ function button_press(hObject,~)
 global GUI
 persistent press_count start_point end_point source_node dest_node
     tolerance=10;
+    minimum_dist=10;
     pt=round(get(hObject,'CurrentPoint'));
     if(GUI.add_path_mode==0)%mouse clicks results in adding a node
         press_count=0;
         GUI.nodes_position(end+1,:)=[pt(1,1) pt(1,2)];
-        set(GUI.node_pos,'XData',GUI.nodes_position(:,1),'YData',GUI.nodes_position(:,2));
-        set_node_configuration(pt(1,1:2),size(GUI.nodes_position,1));%setup dialog box to request node information
+        if(size(find((abs(GUI.nodes_position(:,1)-GUI.nodes_position(end,1))<minimum_dist)&(abs(GUI.nodes_position(:,2)-GUI.nodes_position(end,2))<minimum_dist)),1)==1)
+            set(GUI.node_pos,'XData',GUI.nodes_position(:,1),'YData',GUI.nodes_position(:,2));
+            set_node_configuration(pt(1,1:2),size(GUI.nodes_position,1));%setup dialog box to request node information
+        else
+            GUI.nodes_position(end,:)=[];
+        end
     else %mouse clicks results in adding a path
         distancesToMouse = hypot(GUI.nodes_position(:,1) - pt(1,1), GUI.nodes_position(:,2) - pt(1,2));%find the distance between the mouse click and all other nodes using sqrt((x1-x2)^2 + (y1-y2)^2)
         [val, ind] = min(abs(distancesToMouse));%find the shortest distance
@@ -1462,6 +1496,7 @@ global GUI
         set(hObject,'ForegroundColor',[1 0.5 0]);
         set(hObject,'Checked','on');
     else
+        set(GUI.selected_node_pos,'XData',[],'YData',[]);
         set(hObject,'ForegroundColor','k');
         set(hObject,'Checked','off');
     end
