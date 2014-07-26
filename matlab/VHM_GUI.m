@@ -11,7 +11,7 @@ function err_code=VHM_GUI(varargin)
         delete(timerfindall);
         GUI.udp_handle=[]; 
         GUI.ok_to_display=0;
-        GUI.IP={'158.130.12.40'};%sample IP address
+        GUI.IP={'158.130.12.42'};%sample IP address
         GUI.logging_in_progress=0;
         GUI.update_in_progress=0;
         GUI.screen_size=get(0,'ScreenSize');
@@ -236,7 +236,7 @@ global GUI
             GUI.factor=4;
         case 4
             fprintf(GUI.udp_handle,'s10');
-            GUI.factor=10;
+          GUI.factor=10;
     end
 end
 
@@ -342,11 +342,7 @@ function plot_signals(option,curr_time_frame,current_node_activation_status,time
     persistent prev_value plot_handle text_handle time_frame offset_matrix working_handle_index handle_list
     global GUI change changed_node signals_list
     if(option==0)
-        try
-            delete(GUI.plot_axis_handle);
-        catch
-        end
-        time_frame=curr_time_frame;%data points per plot
+        time_frame=200;%data points per plot
         working_handle_index=9999*ones(1,no_of_nodes);%initialize temporary index
         color_string='ymcrgb';%colors for each signal on the plot
         GUI.plot_axis_handle=axes('Parent',GUI.panel3_handle,'Units','normalized','Position',[0 0 1 1]);%create the axes for the plot
@@ -482,10 +478,21 @@ function plot_signals(option,curr_time_frame,current_node_activation_status,time
         ylim([0 1.5*no_of_nodes]);
         change=0;
     end
-    prev_value(1,:)=[];%remove first data point to accommodate for the newer value added to the end
+    if(time_frame==curr_time_frame)
+        prev_value(1,:)=[];%remove first data point to accommodate for the newer value added to the end
+        handle_list(3,:)=handle_list(3,:)-1;%mimic movement of the plot, shift data points to the left and likewise, the text position as well
+        handle_list(5,:)=handle_list(5,:)-1;
+    else if(time_frame<curr_time_frame)
+            time_frame=time_frame+1;
+        else            
+            prev_value(1:time_frame-curr_time_frame+1,:)=[];%resize the array to match the datapoints on the plot
+            handle_list(3,:)=handle_list(3,:)-(time_frame-curr_time_frame+1);%mimic movement of the plot, shift data points to the left and likewise, the text position as well
+            handle_list(5,:)=handle_list(5,:)-(time_frame-curr_time_frame+1);
+            time_frame=curr_time_frame;
+        end
+        xlim([0 time_frame]);
+    end
     prev_value(end+1,:)=current_node_activation_status+offset_matrix;%append newer values
-    handle_list(3,:)=handle_list(3,:)-1;%mimic movement of the plot, shift data points to the left and likewise, the text position as well
-    handle_list(5,:)=handle_list(5,:)-1;
     for i=1:no_of_nodes,
         if((current_node_activation_status(i)==1)&&(offset_matrix(i)==prev_value(end-1,i)))%positive edge detection
             temp_array(1)=time_now;%start time of the interval
@@ -626,6 +633,7 @@ function run_model(hObject,~)
             delete(GUI.plot_axis_handle);
             delete(GUI.datapoints);
             delete(GUI.curr_time_frame_handle);
+            delete(GUI.time_frame_slider);
             for i=1:GUI.nx,
                 delete(GUI.signals_selection_button_handle(i));
             end
@@ -662,7 +670,7 @@ function stop_display_routine
 end
 
 function plot_refresher(varargin)
-    global GUI change signals_list no_of_nodes curr_time_frame change2
+    global GUI change signals_list no_of_nodes curr_time_frame
     persistent option temp_nodes_states temp_node_activation_status temp_path_states temp_current_time
     if(~isempty(GUI.current_nodes_states))
         %read the first element from all the buffers
@@ -679,10 +687,6 @@ function plot_refresher(varargin)
     if(GUI.ok_to_display==1)
         if(change~=0)
             no_of_nodes=size(signals_list,2);
-        end
-        if(change2~=0)
-            option=0;
-            change2=0;
         end
         plot_signals(option,curr_time_frame,temp_node_activation_status(signals_list),temp_current_time,no_of_nodes);%call plot_signal function with suitable arguments
         option=1;
@@ -745,15 +749,26 @@ function update_GUI(node_table,path_table)%called when heart model is a script t
 end
 
 function change_time_frame(hObject,~)
-    global curr_time_frame change2
+    global curr_time_frame GUI
     try
-        curr_time_frame=str2double(get(hObject,'String'));
+        if(hObject==GUI.curr_time_frame_handle)
+            temp_time_frame=str2double(get(hObject,'String'));
+            if((int64(abs(temp_time_frame))==temp_time_frame)&&(temp_time_frame<=10100))
+                set(GUI.time_frame_slider,'Value',temp_time_frame);
+                curr_time_frame=temp_time_frame;
+            else
+                set(hObject,'String',num2str(curr_time_frame));
+            end
+        else
+            curr_time_frame=double(int64(get(hObject,'Value')));
+            set(GUI.curr_time_frame_handle,'String',num2str(curr_time_frame));
+        end
     catch
+        curr_time_frame=200;
     end
-    change2=1;
 end
 function display_signals_or_tables(hObject,~)
-    global GUI change signals_list no_of_nodes change2 curr_time_frame
+    global GUI change signals_list no_of_nodes curr_time_frame
     if(strcmp(get(hObject,'String'),'Show Signals')==1) %setup axis for signals display
         if(config_check~=1)%check that the environment is in order
             return;
@@ -793,10 +808,17 @@ function display_signals_or_tables(hObject,~)
             'BackgroundColor','White',...
             'Position',[0.6 0.97 0.025 0.025],...
             'Callback',@change_time_frame);
+        GUI.time_frame_slider=uicontrol('Style','slider',...
+            'Min',100,...
+            'Max',10100,...
+            'Value',200,...
+            'Units','normalized',...
+            'Position',[0.625 0.97 0.37 0.025],...
+            'SliderStep',[0.005 0.01],...
+            'Callback',@change_time_frame);
         no_of_nodes=GUI.nx;
         change=0;
         signals_list=1:GUI.nx;
-        change2=0;
         curr_time_frame=200;
         GUI.ok_to_display=1;
         set(hObject,'String','Show Tables');
@@ -807,6 +829,7 @@ function display_signals_or_tables(hObject,~)
         delete(GUI.plot_axis_handle);
         delete(GUI.datapoints);
         delete(GUI.curr_time_frame_handle);
+        delete(GUI.time_frame_slider);
         for i=1:GUI.nx,
             delete(GUI.signals_selection_button_handle(i));
         end
@@ -855,19 +878,7 @@ function response=gather_data(fill)%fill==1 --> interpolate, fill==0 -->don't in
     end
     fprintf(GUI.udp_handle,'ok');
     data=fscanf(GUI.udp_handle);
-    if(Log_plot_helper2(0,data,GUI.nx,GUI.px,fill))%if log in heart not filled up, abort data gather
-        for i=1:1000%send acks to bring the heart out of waiting for response
-            fprintf(GUI.udp_handle,'x');
-            fscanf(GUI.udp_handle);
-        end
-        fclose(GUI.udp_handle);
-        clear GUI.udp_handle;
-        waitbar(1000,waitbar_handle);
-        close(waitbar_handle);
-        errordlg('Not enough data in log, try again later','Insufficient data','modal');
-        response=1;
-        return;
-    end
+    Log_plot_helper2(0,data,GUI.nx,GUI.px,fill);
     loop_count=1;
     while(1)
       fprintf(GUI.udp_handle,'ok');%send acknowledgement for every datagram received, without this, heart won't continue sending data
@@ -908,7 +919,7 @@ function display_log(hObject,~)
     Heart_log.figure_handle=figure('Units', 'normalized'...
         ,'Position', [0 0 1 1]...
         ,'Resize','on'...
-        ,'Name','Test Sample'...
+        ,'Name','Heart Log'...
         ,'NumberTitle','Off');
     Heart_log.axes_handle=axes('Units','normalized'...
         ,'Parent',Heart_log.figure_handle...
