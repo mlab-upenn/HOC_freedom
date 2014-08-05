@@ -24,6 +24,7 @@ persistent not_ready blanks
                 GUI.node_activation_status_history=[GUI.node_activation_status_history;GUI.node_activation_status_history(end,:)];
                 GUI.nodes_states_history=[GUI.nodes_states_history;GUI.nodes_states_history(end,:)];
                 GUI.path_states_history=[GUI.path_states_history;GUI.path_states_history(end,:)];
+                GUI.time_stamp_history=[GUI.time_stamp_history;i];
             end
         end
         %add to the history of signals

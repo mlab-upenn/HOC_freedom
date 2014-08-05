@@ -189,7 +189,7 @@ function err_code=VHM_GUI(varargin)
             GUI.model_mode_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\software-icon.png'),'TooltipString','Software Heart Model');
         else
             GUI.new_file_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\new.png'),'TooltipString','New Model','ClickedCallback',@new_model);
-            GUI.load_file_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\open-file.png'),'TooltipString','Load Model','ClickedCallback',@load_model);
+            GUI.load_file_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\open-file.png'),'TooltipString','Load Model','ClickedCallback',@load_model_dbox);
             GUI.save_file_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\save.png'),'TooltipString','Save Model','ClickedCallback',@save_model);
             GUI.add_path_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\add_path.png'),'TooltipString','Add path','ClickedCallback',@add_path);
             GUI.delete_node_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\delete_node.png'),'TooltipString','Remove Node','ClickedCallback',@remove_node);
@@ -199,7 +199,7 @@ function err_code=VHM_GUI(varargin)
             GUI.ip_address_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\network_ip.png'),'TooltipString','IP address','ClickedCallback',@change_ip);
         end
         GUI.play_mode_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\clock.png'),'TooltipString','Current Mode','ClickedCallback',@switch_modes,'Tag','current');
-        GUI.pacemaker_mode_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\no_pacemaker.png'),'TooltipString','Pacemaker Off','ClickedCallback',@switch_modes,'Tag','poff');
+        GUI.pacemaker_mode_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\pacemaker.png'),'TooltipString','Pacemaker Off','ClickedCallback',@switch_modes,'Tag','poff');
         GUI.view_history_handle=uipushtool(GUI.toolbar_handle,'CData',customize_image('..\icons\log.png'),'TooltipString','View Heart Log','ClickedCallback',@display_log);
         GUI.selected_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','g','MarkerFaceColor','g');
         GUI.activated_node_pos=scatter([],[],'LineWidth',5,'Marker','o','MarkerEdgeColor','y','MarkerFaceColor','y','HitTest','off');
@@ -214,6 +214,65 @@ function err_code=VHM_GUI(varargin)
         GUI.node_hint_text_handle = text('Color', 'white', 'VerticalAlign', 'Bottom');
         GUI.path_hint_text_handle = text('Color', 'white', 'VerticalAlign', 'Bottom');
     end
+end
+
+function load_model_dbox(~,~)
+global GUI
+    GUI.model_selection_figure.main_handle=figure('Units', 'normalized',...
+            'Position', [0.5 0.5 0.2 0.2],...
+            'Resize','off',...
+            'Name','Choose Heart Model',...
+            'NumberTitle','Off'); 
+    set(GUI.model_selection_figure.main_handle,'MenuBar','none');
+    set(GUI.model_selection_figure.main_handle,'ToolBar','none');
+    GUI.model_selection_figure.buttongroup_handle=uibuttongroup('visible','on','Units','normalized','Position',[0 0.2 1 0.8],'SelectionChangeFcn',@change_selection);
+    GUI.model_selection_figure.shm_button=uicontrol('Parent',GUI.model_selection_figure.buttongroup_handle,'Style','radiobutton','String','Standard Heart Model','Units','normalized','Position',[0.005 0.75 0.35 0.1]);
+    GUI.model_selection_figure.predefined_model_menu=uicontrol('Parent',GUI.model_selection_figure.main_handle,...
+        'Style','popupmenu',...
+        'String',{'Normal Sinus Rhythm(simple)','Bradycardia with Heart Block(simple)','Atrioventricular Nodal Reentry Tachycardia(simple)','Wenckebach Heart Block(complex)'},...
+        'Units','normalized','Position',[0.35 0.8 0.5 0.1]);
+    GUI.model_selection_figure.chm_button=uicontrol('Parent',GUI.model_selection_figure.buttongroup_handle,'Style','radiobutton','String','Custom Heart Model','Units','normalized','Position',[0.005 0.4 0.35 0.1]);
+    GUI.model_selection_figure.chm_path=uicontrol('Style','edit','String',[],'Units','normalized','Position',[0.35 0.5 0.5 0.1],'BackgroundColor','w','Enable','off');
+    GUI.model_selection_figure.chm_browse_button=uicontrol('Style','pushbutton','String','Browse','Units','normalized','Position',[0.85 0.5 0.145 0.1],'Callback',@load_custom_model,'Enable','off');
+    GUI.model_selection_figure.ok_button=uicontrol('Style','pushbutton','String','OK','Units','normalized','Position',[0.02 0.02 0.33 0.15],'Callback',@model_ok);
+    GUI.model_selection_figure.cancel_button=uicontrol('Style','pushbutton','String','Cancel','Units','normalized','Position',[0.65 0.02 0.33 0.15],'Callback',@model_not_ok);
+    set(GUI.model_selection_figure.buttongroup_handle,'SelectedObject',GUI.model_selection_figure.shm_button); 
+end
+
+function change_selection(~,eventdata)
+    global GUI
+    if(eventdata.NewValue==GUI.model_selection_figure.shm_button)
+        set(GUI.model_selection_figure.chm_path,'Enable','off');
+        set(GUI.model_selection_figure.chm_browse_button,'Enable','off');
+        set(GUI.model_selection_figure.predefined_model_menu,'Enable','on');
+    else
+        set(GUI.model_selection_figure.chm_path,'Enable','on');
+        set(GUI.model_selection_figure.chm_browse_button,'Enable','on');
+        set(GUI.model_selection_figure.predefined_model_menu,'Enable','off'); 
+    end
+        
+end
+
+function load_custom_model(~,~)
+    global GUI
+    [FileName,FilePath ]= uigetfile('*.mat', 'Load VHM Model');
+    GUI.model_selection_figure.ExPath = fullfile(FilePath, FileName);
+    set(GUI.model_selection_figure.chm_path,'String',GUI.model_selection_figure.ExPath);
+end
+
+function model_ok(hObject,~)
+    global GUI
+    standard_model_file_paths={'D:\VHM\HOC_freedom\HOC_freedom\new_codes\case_sp_NSR.mat','D:\VHM\HOC_freedom\HOC_freedom\new_codes\case_sp_BRwHB.mat','D:\VHM\HOC_freedom\HOC_freedom\new_codes\AVNRT.mat','D:\VHM\HOC_freedom\HOC_freedom\new_codes_ver2\matlab\case_cp_WB.mat'};
+    if(get(GUI.model_selection_figure.buttongroup_handle,'SelectedObject')==GUI.model_selection_figure.shm_button)
+      load_model(standard_model_file_paths{get(GUI.model_selection_figure.predefined_model_menu,'Value')}); 
+    else
+        load_model(GUI.model_selection_figure.ExPath);
+    end
+    close(get(hObject,'Parent'));
+end
+
+function model_not_ok(hObject,~)
+    close(get(hObject,'Parent'));
 end
 
 function change_ip(~,~)
@@ -573,6 +632,8 @@ function run_model(hObject,~)
             set(GUI.relaxed_node_pos,'Visible','on');
             set(GUI.excited_node_pos,'Visible','on');
             set(GUI.heart_axes_handle,'ButtonDownFcn',@emergency_pacer);
+            GUI.heart_rate_text=text('Parent',GUI.heart_axes_handle,'Units','normalized','Position',[0.8 0.925],'String','HEART RATE','HitTest','off','Color','k','FontSize',15);
+            GUI.heart_rate_field=text('parent',GUI.heart_axes_handle,'Units','normalized','Position',[0.795 0.89],'String','0BPM','HitTest','off','Color','g','FontSize',30);
             %set up of the buffers
             if(GUI.mode)
                 if(GUI.start_point==size(GUI.time_stamp_history,1))
@@ -639,6 +700,8 @@ function run_model(hObject,~)
             end
         catch
         end
+        delete(GUI.heart_rate_text);
+        delete(GUI.heart_rate_field);
         set(GUI.node_table_handle,'Visible','on');
         set(GUI.path_table_handle,'Visible','on');
         set(GUI.trigger_table_handle,'Visible','on');   
@@ -671,7 +734,7 @@ end
 
 function plot_refresher(varargin)
     global GUI change signals_list no_of_nodes curr_time_frame
-    persistent option temp_nodes_states temp_node_activation_status temp_path_states temp_current_time
+    persistent option temp_nodes_states temp_node_activation_status temp_path_states temp_current_time prev_v_node_activation_time prev_v_node_activation_status
     if(~isempty(GUI.current_nodes_states))
         %read the first element from all the buffers
         temp_nodes_states=GUI.current_nodes_states(1,:);
@@ -701,6 +764,18 @@ function plot_refresher(varargin)
     set(GUI.relaxed_node_pos,'XData',GUI.relaxed_nodes_position(:,1),'YData',GUI.relaxed_nodes_position(:,2));
     set(GUI.excited_node_pos,'XData',GUI.excited_nodes_position(:,1),'YData',GUI.excited_nodes_position(:,2));
     set(GUI.activated_node_pos,'XData',GUI.activated_nodes_position(:,1),'YData',GUI.activated_nodes_position(:,2));
+    if(temp_node_activation_status(GUI.nx)==1)%V node is activated
+        if((~isempty(prev_v_node_activation_status))&&(temp_node_activation_status(GUI.nx)~=prev_v_node_activation_status)&&(~isempty(prev_v_node_activation_time)))
+            heart_rate=floor(60000/(temp_current_time-prev_v_node_activation_time));
+            if(heart_rate>=40&&heart_rate<=100)
+                set(GUI.heart_rate_field,'String',[num2str(heart_rate) 'BPM'],'Color','g');
+            else
+                set(GUI.heart_rate_field,'String',[num2str(heart_rate) 'BPM'],'Color','r');
+            end
+        end
+        prev_v_node_activation_time=temp_current_time;
+    end
+    prev_v_node_activation_status=temp_node_activation_status(GUI.nx);
     for i=1:GUI.px
         set(GUI.paths_handle(i),'Color',colorcodes(temp_path_states(i)));
     end
@@ -801,6 +876,7 @@ function display_signals_or_tables(hObject,~)
             'Units','Normalized',...
             'ForegroundColor','Red',...
             'BackgroundColor',[0.7 0.9 0.8],...
+            'HorizontalAlignment','center',...
             'Position',[0.57 0.97 0.03 0.025]);
         GUI.curr_time_frame_handle=uicontrol('Style','edit',...
             'String','200',...
@@ -898,7 +974,7 @@ end
 function display_log(hObject,~)
     global GUI
     global start_time;
-    global duration current_range x_range;
+    global duration current_range x_limit;
     global Heart_log;
     global click_count;
     if(config_check~=1)
@@ -921,54 +997,69 @@ function display_log(hObject,~)
         ,'Resize','on'...
         ,'Name','Heart Log'...
         ,'NumberTitle','Off');
+    set(Heart_log.figure_handle,'MenuBar','none');
+    set(Heart_log.figure_handle,'ToolBar','none');
     Heart_log.axes_handle=axes('Units','normalized'...
         ,'Parent',Heart_log.figure_handle...
         ,'YTick',[]...
         ,'NextPlot','add'...
-        ,'Position',[0.1 0.2 0.8 0.75]);
-    uicontrol('Style','text','String','0s'...
+        ,'Position',[0.005 0.1 0.99 0.895]);
+%     uicontrol('Style','text','String','Offset'...
+%         ,'Units','normalized'...
+%         ,'Position',[0.03 0.05 0.025 0.025]...
+%         ,'BackgroundColor','black'...
+%         ,'ForegroundColor','white'...
+%         ,'HorizontalAlignment','center');
+%     Heart_log.offset_field=uicontrol('Style','text','String','0ms',...
+%         'Units','normalized',...
+%         'Position',[0.055 0.05 0.025 0.025],...
+%         'BackgroundColor','black',...
+%         'ForegroundColor','white',...
+%         'HorizontalAlignment','center');
+    Heart_log.lower_limit_field=uicontrol('Style','text','String','0s'...
         ,'Units','normalized'...
-        ,'Position',[0.125 0.125 0.025 0.025]);
+        ,'Position',[0.005 0.025 0.025 0.025]);
     %two slide bars to change the range of viewable data and resolution
     Heart_log.slider1_handle=uicontrol('Style','slider'...
         ,'Min',1,...
         'Max',duration...
         ,'Value',1,...
         'Units','normalized'...
-        ,'Position',[0.15 0.15 0.70 0.025]...
-        ,'SliderStep',[0.0001 0.001]...
+        ,'Position',[0.03 0.025 0.935 0.025]...
+        ,'SliderStep',[1/duration 10/duration]...
         ,'Callback',@replot);
     Heart_log.slider2_handle=uicontrol('Style','slider'...
         ,'Min',1,...
         'Max',duration...
         ,'Value',duration,...
         'Units','normalized'...
-        ,'Position',[0.15 0.125 0.70 0.025]...
-        ,'SliderStep',[0.0001 0.001]...
+        ,'Position',[0.03 0 0.935 0.025]...
+        ,'SliderStep',[1/duration 10/duration]...
         ,'Callback',@replot);
-    uicontrol('Style','text','String',strcat(num2str(duration/1000),'s')...
+    Heart_log.higher_limit_field=uicontrol('Style','text','String',strcat(num2str(duration/1000),'s')...
         ,'Units','normalized'...
-        ,'Position',[0.85 0.15 0.03 0.025]);
+        ,'Position',[0.965 0.025 0.03 0.025]);
     whitebg(Heart_log.figure_handle,'k');
     Heart_log.interval_text_handle=text('Units','data','Position',[0 0],'String','','HitTest','off');
     set(Heart_log.axes_handle,'ButtonDownFcn',@set_time_interval);%callback registered when button pressed on the plot
-    x_range=(1:1000)';
+    x_limit=GUI.time_stamp_history(end) - GUI.time_stamp_history(1);
     click_count=0;
     color_string='ymcrgb';
     hold on;
     for i=1:GUI.nx
         current_range(:,i)=GUI.node_activation_status_history(1:duration,i)+1.5*(GUI.nx-i);
-        temp_string=strcat('Node ',num2str(i));
-        Heart_log.label_handle(i)=text('Units','data','Position',[500,1.5*(GUI.nx-i)+0.75],'String',temp_string,'HitTest','off');
         Heart_log.plot_handle(i)=plot(current_range(:,i));
         colorcode=color_string(mod(i,6)+1);
-        set(Heart_log.plot_handle(i),'XDataSource','x_range','Color',colorcode);
+        set(Heart_log.plot_handle(i),'Color',colorcode);%,'XDataSource','x_limit'
         set(Heart_log.plot_handle(i),'YDataSource','current_range(:,i)','HitTest','off');
+        temp_string=strcat('Node ',num2str(i));
+        Heart_log.label_handle(i)=text('Units','data','Position',[x_limit/2,1.5*(GUI.nx-i)+0.75],'String',temp_string,'HitTest','off');
     end
     hold off;
     set(Heart_log.axes_handle,'YTickLabel',[]);
     set(Heart_log.axes_handle,'box','off');
     ylim([0 1.5*GUI.nx]);
+    xlim([0 GUI.time_stamp_history(end)-GUI.time_stamp_history(1)]);
     %set(hObject,'String','Plot Heart Log');
     GUI.logging_in_progress=0;
 end
@@ -976,7 +1067,7 @@ end
 function replot(~,~)%this function called when the sliders are moved
     %Adjust the range of viewable data points based on the position of the
     %sliders
-    global Heart_log current_range GUI x_range
+    global Heart_log current_range GUI x_limit
     lower_limit=uint64(get(Heart_log.slider2_handle,'Value'));
     higher_limit=uint64(get(Heart_log.slider1_handle,'Value'));
     if(lower_limit>higher_limit)
@@ -984,14 +1075,17 @@ function replot(~,~)%this function called when the sliders are moved
         lower_limit=higher_limit;
         higher_limit=temp;
     end
-    x_range=(lower_limit:higher_limit)';
+    x_limit=higher_limit-lower_limit;
     current_range=zeros(higher_limit-lower_limit+1,GUI.nx);
     %sum(current_range)
     for i=1:GUI.nx
         current_range(:,i)=GUI.node_activation_status_history(lower_limit:higher_limit,i)+1.5*(GUI.nx-i);
-        set(Heart_log.label_handle(i),'Position',[(higher_limit+lower_limit)/2,1.5*(GUI.nx-i)+0.75]);
+        set(Heart_log.label_handle(i),'Position',[x_limit/2,1.5*(GUI.nx-i)+0.75]);
         refreshdata(Heart_log.plot_handle(i),'caller');
     end
+    set(Heart_log.lower_limit_field,'String',[num2str(lower_limit) 'ms']);
+    set(Heart_log.higher_limit_field,'String',[num2str(higher_limit) 'ms']);
+    xlim([0 higher_limit-lower_limit]);
 end
 
 function set_time_interval(hObject,~)
@@ -1170,10 +1264,9 @@ function create_t_table_on_GUI(trigger_table,figure_handle)
     'ColumnFormat',temp_columnformat_string,'ColumnEditable',temp_columneditable_array,'ColumnName',temp_columnname_string);
 end
 
-function load_model(~,~)
+function load_model(filepath)
     global GUI
-    [fname,path] = uigetfile('*.mat', 'Load VHM Model');
-    load([path fname]);
+    load(filepath);
     if((GUI.heart_model && (size(node_table,2)~=12 || size(path_table,2)~=8))||(~GUI.heart_model && (size(node_table,2)~=7 || size(path_table,2)~=7)))
         errordlg('Please load the correct heart model','Wrong tables structure','modal');
         return;
@@ -1198,7 +1291,7 @@ function load_model(~,~)
     end
     GUI.paths_handle=[];
     for i=1:GUI.px
-        GUI.paths_handle(end+1)=line([node_pos(path_table(i,2),1) node_pos(path_table(i,3),1)],[node_pos(path_table(i,2),2) node_pos(path_table(i,3),2)],'LineWidth',5,'HitTest','off');
+        GUI.paths_handle(end+1)=line([node_pos(path_table(i,2),1) node_pos(path_table(i,3),1)],[node_pos(path_table(i,2),2) node_pos(path_table(i,3),2)],'LineWidth',5,'HitTest','off','Parent',GUI.heart_axes_handle);
     end
     %update_tooltip;
 end
@@ -1430,7 +1523,7 @@ global GUI
 persistent press_count start_point end_point source_node dest_node
     tolerance=10;
     minimum_dist=10;
-    pt=round(get(hObject,'CurrentPoint'));
+    pt=round(get(hObject,'CurrentPoint'))
     if(GUI.add_path_mode==0)%mouse clicks results in adding a node
         press_count=0;
         GUI.nodes_position(end+1,:)=[pt(1,1) pt(1,2)];
